@@ -1,0 +1,343 @@
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, X, Calendar, Share, CloudCheck } from 'lucide-react';
+import { useCoordinationStore } from '@/store/coordinationStore';
+import { coordinationDocumentsApi } from '@/services/api';
+import { DynamicSectionRenderer } from '@/components/coordination/DynamicSectionRenderer';
+import { ClassPlanTable } from '@/components/coordination/ClassPlanTable';
+import {
+  PublishValidation,
+  canPublishDocument,
+} from '@/components/coordination/PublishValidation';
+import { ChatPanel } from '@/components/ai/ChatPanel';
+import { GenerateButton } from '@/components/ai/GenerateButton';
+import { LoadingOrb } from '@/components/ai/LoadingOrb';
+import { Button } from '@/components/ui/button';
+import type { SectionValue } from '@/types';
+
+export function Document() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const docId = parseInt(id || '0');
+  const isReadOnly = searchParams.get('readonly') === 'true';
+
+  const { currentDocument, setCurrentDocument, isGenerating, setIsGenerating } =
+    useCoordinationStore();
+
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [isClassesCollapsed, setIsClassesCollapsed] = useState(false);
+  const [generatingSections, setGeneratingSections] = useState<Set<string>>(new Set());
+  const [isGeneratingClasses, setIsGeneratingClasses] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [showPublishErrors, setShowPublishErrors] = useState(false);
+
+  useEffect(() => {
+    loadDocument();
+    return () => setCurrentDocument(null);
+  }, [docId]);
+
+  // Auto-generate on first load if empty
+  useEffect(() => {
+    if (currentDocument && !hasAnySectionContent() && !isGenerating) {
+      handleGenerateAll();
+    }
+  }, [currentDocument?.id]);
+
+  const loadDocument = async () => {
+    try {
+      const doc = await coordinationDocumentsApi.getById(docId);
+      setCurrentDocument(doc);
+    } catch (error) {
+      console.error('Error loading document:', error);
+    }
+  };
+
+  const refetchDocument = useCallback(async () => {
+    try {
+      const doc = await coordinationDocumentsApi.getById(docId);
+      setCurrentDocument(doc);
+    } catch (error) {
+      console.error('Error refetching document:', error);
+    }
+  }, [docId]);
+
+  const hasAnySectionContent = () => {
+    if (!currentDocument) return false;
+    return Object.values(currentDocument.sections).some(
+      (v) => v.value?.trim() || v.selected_option?.trim(),
+    );
+  };
+
+  // --- Section operations ---
+
+  const handleSectionChange = useCallback(
+    async (key: string, value: SectionValue) => {
+      if (!currentDocument) return;
+      const previousSections = currentDocument.sections;
+      const updatedSections = { ...previousSections, [key]: value };
+      setCurrentDocument({ ...currentDocument, sections: updatedSections });
+      try {
+        await coordinationDocumentsApi.update(docId, { sections: { [key]: value } });
+      } catch (error) {
+        console.error('Error saving section:', error);
+        // Rollback to previous state on failure
+        setCurrentDocument({ ...currentDocument, sections: previousSections });
+      }
+    },
+    [currentDocument, docId],
+  );
+
+  const handleGenerateSection = useCallback(
+    async (sectionKey: string) => {
+      setGeneratingSections((prev) => new Set(prev).add(sectionKey));
+      try {
+        await coordinationDocumentsApi.generate(docId, { section_keys: [sectionKey] });
+        await refetchDocument();
+      } catch (error) {
+        console.error('Error generating section:', error);
+      } finally {
+        setGeneratingSections((prev) => {
+          const next = new Set(prev);
+          next.delete(sectionKey);
+          return next;
+        });
+      }
+    },
+    [docId, refetchDocument],
+  );
+
+  const handleGenerateAll = async () => {
+    if (!currentDocument) return;
+    setIsGenerating(true);
+    setGenerateError(null);
+    try {
+      await coordinationDocumentsApi.generate(docId);
+      await refetchDocument();
+    } catch (error) {
+      console.error('Error generating content:', error);
+      setGenerateError('Error al generar. Intenta nuevamente.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // --- Class plan operations ---
+
+  const handleGenerateClasses = async () => {
+    setIsGeneratingClasses(true);
+    try {
+      await coordinationDocumentsApi.generate(docId, { regenerate_class_plans: true });
+      await refetchDocument();
+    } catch (error) {
+      console.error('Error generating classes:', error);
+    } finally {
+      setIsGeneratingClasses(false);
+    }
+  };
+
+  // --- Publish ---
+
+  const handlePublish = async () => {
+    if (!currentDocument) return;
+
+    if (!canPublishDocument(currentDocument)) {
+      setShowPublishErrors(true);
+      return;
+    }
+
+    try {
+      await coordinationDocumentsApi.update(docId, { status: 'published' });
+      setShowPublishErrors(false);
+      await refetchDocument();
+    } catch (error) {
+      console.error('Error publishing:', error);
+    }
+  };
+
+  // --- Render ---
+
+  if (!currentDocument) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingOrb message="Cargando documento..." />
+      </div>
+    );
+  }
+
+  const sectionConfigs = currentDocument.org_config?.coord_doc_sections ?? [];
+  const isPublished = currentDocument.status === 'published';
+  const hasClassPlans = currentDocument.subjects.some((s) => s.classes.length > 0);
+
+  return (
+    <div className="h-screen flex flex-col gradient-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#DAD5F6] bg-[#FFFFFF26] backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <button type="button" onClick={() => navigate('/')} className="cursor-pointer hover:opacity-70">
+            <ChevronLeft className="w-6 h-6 text-[#324155]" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <h1 className="header-title text-[#10182B]">
+            {currentDocument.name}
+          </h1>
+          <CloudCheck className="w-5 h-5 text-[#324155]" />
+        </div>
+        <div className="flex items-center gap-3">
+          {!isReadOnly && !isPublished && (
+            <GenerateButton
+              onClick={handleGenerateAll}
+              label="Generar todo"
+              isGenerating={isGenerating}
+              error={generateError}
+              variant="ghost"
+              size="sm"
+            />
+          )}
+          <Button
+            onClick={!isPublished && !isGenerating ? handlePublish : undefined}
+            disabled={isPublished || isGenerating}
+            className={`flex items-center gap-2 text-primary bg-muted border-none rounded-xl ${
+              isPublished || isGenerating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-muted hover:text-primary'
+            }`}
+          >
+            <Share className="w-4 h-4 text-primary" />
+            {isPublished ? 'Publicado' : 'Publicar'}
+          </Button>
+          <button type="button" onClick={() => navigate('/')} className="cursor-pointer hover:opacity-70">
+            <X className="w-6 h-6 text-[#324155]" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden p-6 gap-6">
+        {/* Left: Chat */}
+        {!isReadOnly && (
+          <div className={`${isChatCollapsed ? 'w-12' : 'w-80'} flex flex-col transition-all duration-300 ease-in-out`}>
+            <ChatPanel
+              entityType="coordination-document"
+              entityId={docId}
+              onEntityUpdated={refetchDocument}
+              placeholder="Escribi tu mensaje para Alizia..."
+              welcomeMessage={{
+                title: 'Documento creado',
+                content: 'Si necesitas realizar algun cambio, podes escribirme y lo ajustamos.',
+              }}
+              isCollapsed={isChatCollapsed}
+              onToggleCollapse={() => setIsChatCollapsed(!isChatCollapsed)}
+              isGenerating={isGenerating}
+            />
+          </div>
+        )}
+
+        {/* Center: Dynamic sections */}
+        <div className="flex-1 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+          {/* Document title + dates */}
+          <div className="p-4 px-6 border-b border-muted flex items-center justify-between h-14">
+            <h2 className="headline-1-bold text-[#10182B] truncate">
+              {currentDocument.name}
+            </h2>
+            <div className="flex items-center gap-2 text-[#47566C] text-sm">
+              <Calendar className="w-4 h-4" />
+              <span>
+                {formatDate(currentDocument.start_date)} - {formatDate(currentDocument.end_date)}
+              </span>
+            </div>
+          </div>
+
+          {/* Sections content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {showPublishErrors && !isPublished && !isGenerating && (
+              <PublishValidation document={currentDocument} />
+            )}
+            {isGenerating ? (
+              <div className="flex items-center justify-center py-16">
+                <LoadingOrb message="Generando contenido con IA..." size="lg" />
+              </div>
+            ) : (
+              <DynamicSectionRenderer
+                sectionConfigs={sectionConfigs}
+                sections={currentDocument.sections}
+                onSectionChange={handleSectionChange}
+                onGenerateSection={handleGenerateSection}
+                generatingSections={generatingSections}
+                readOnly={isReadOnly || isPublished}
+              />
+            )}
+          </div>
+
+          {/* Classes footer */}
+          {!isGenerating && (
+            <div className="p-4 px-6 bg-[#FFFFFF26] backdrop-blur-sm border-t border-muted">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-[#324155]">Clases por disciplina</h3>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsClassesCollapsed(false)}
+                  className="cursor-pointer"
+                >
+                  Ver clases
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Class plans */}
+        {!isClassesCollapsed && (
+          <div className="w-80 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-[#DAD5F6] flex items-center justify-between h-14">
+              <h3 className="headline-1-bold text-[#10182B]">Clases</h3>
+              <button type="button" onClick={() => setIsClassesCollapsed(true)} className="cursor-pointer hover:opacity-70">
+                <X className="w-5 h-5 text-[#324155]" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {isGeneratingClasses ? (
+                <div className="flex items-center justify-center py-12">
+                  <LoadingOrb message="Generando clases con IA..." />
+                </div>
+              ) : !hasClassPlans ? (
+                <div className="flex flex-col items-center justify-center text-center px-6 py-16">
+                  <div className="w-16 h-16 rounded-full bg-[#EDE9FE] flex items-center justify-center mb-5">
+                    <Calendar className="w-8 h-8 text-primary" />
+                  </div>
+                  <h4 className="headline-1-bold text-[#10182B] mb-2">Planifiquemos las clases</h4>
+                  <p className="body-2-regular text-[#47566C] mb-6 max-w-[220px]">
+                    Genera automaticamente el plan de clases para cada disciplina con IA
+                  </p>
+                  <GenerateButton
+                    onClick={handleGenerateClasses}
+                    label="Generar clases"
+                    isGenerating={isGeneratingClasses}
+                    disabled={isGenerating}
+                  />
+                </div>
+              ) : (
+                <ClassPlanTable
+                  subjects={currentDocument.subjects}
+                  readOnly={isReadOnly || isPublished}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}

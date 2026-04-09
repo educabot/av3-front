@@ -1,0 +1,314 @@
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronLeft, X, Share, CloudCheck, Clock, ArrowRight } from 'lucide-react';
+import { useTeachingStore } from '@/store/teachingStore';
+import { useReferenceStore } from '@/store/referenceStore';
+import { lessonPlansApi } from '@/services/api';
+import { ChatPanel } from '@/components/ai/ChatPanel';
+import { GenerateButton } from '@/components/ai/GenerateButton';
+import { LoadingOrb } from '@/components/ai/LoadingOrb';
+import { Button } from '@/components/ui/button';
+import { ActivityContentEditor } from '@/components/teaching/ActivityContentEditor';
+import type { Activity, MomentKey } from '@/types';
+
+export function TeacherLessonPlan() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const planId = parseInt(id || '0');
+
+  const { currentLessonPlan, setCurrentLessonPlan } = useTeachingStore();
+  const activitiesByMoment = useReferenceStore((s) => s.activitiesByMoment);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<{
+    momentKey: MomentKey;
+    activityId: number;
+  } | null>(null);
+
+  useEffect(() => {
+    loadPlan();
+  }, [planId]);
+
+  // Auto-generate on first load
+  useEffect(() => {
+    if (currentLessonPlan && !isGenerating && hasEmptyActivities()) {
+      handleGenerateAll();
+    }
+  }, [currentLessonPlan?.id]);
+
+  const loadPlan = async () => {
+    try {
+      const plan = await lessonPlansApi.getById(planId);
+      setCurrentLessonPlan(plan);
+    } catch (error) {
+      console.error('Error loading plan:', error);
+    }
+  };
+
+  const refetchPlan = useCallback(async () => {
+    try {
+      const plan = await lessonPlansApi.getById(planId);
+      setCurrentLessonPlan(plan);
+    } catch (error) {
+      console.error('Error refetching plan:', error);
+    }
+  }, [planId]);
+
+  const hasEmptyActivities = (): boolean => {
+    if (!currentLessonPlan?.moments) return false;
+    for (const key of ['apertura', 'desarrollo', 'cierre'] as MomentKey[]) {
+      const moment = currentLessonPlan.moments[key];
+      const actIds = moment.activities || [];
+      const content = moment.activityContent || {};
+      if (actIds.some((id) => !content[String(id)]?.trim())) return true;
+    }
+    return false;
+  };
+
+  const handleGenerateAll = async () => {
+    if (!currentLessonPlan?.moments) return;
+    setIsGenerating(true);
+    try {
+      const pending: { moment: MomentKey; activity_id: number }[] = [];
+      for (const key of ['apertura', 'desarrollo', 'cierre'] as MomentKey[]) {
+        const moment = currentLessonPlan.moments[key];
+        const actIds = moment.activities || [];
+        const content = moment.activityContent || {};
+        for (const actId of actIds) {
+          if (!content[String(actId)]?.trim()) {
+            pending.push({ moment: key, activity_id: actId });
+          }
+        }
+      }
+
+      for (const req of pending) {
+        await lessonPlansApi.generateActivity(planId, req);
+      }
+
+      await refetchPlan();
+    } catch (error) {
+      console.error('Error generating:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      await lessonPlansApi.updateStatus(planId, 'published');
+      await refetchPlan();
+    } catch (error) {
+      console.error('Error publishing:', error);
+    }
+  };
+
+  // --- Content editing ---
+  const handleSaveContent = async (mk: MomentKey, aid: number, newContent: string) => {
+    if (!currentLessonPlan?.moments) return;
+    try {
+      const moments = { ...currentLessonPlan.moments };
+      const momentData = { ...moments[mk] };
+      const actContent = { ...(momentData.activityContent || {}) };
+      actContent[String(aid)] = newContent;
+      momentData.activityContent = actContent;
+      moments[mk] = momentData;
+
+      await lessonPlansApi.update(planId, { moments });
+      setCurrentLessonPlan({ ...currentLessonPlan, moments });
+    } catch (error) {
+      console.error('Error saving:', error);
+    }
+  };
+
+  // --- Render ---
+
+  if (!currentLessonPlan) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingOrb message="Cargando plan de clase..." />
+      </div>
+    );
+  }
+
+  const allActivities = [
+    ...activitiesByMoment.apertura,
+    ...activitiesByMoment.desarrollo,
+    ...activitiesByMoment.cierre,
+  ];
+
+  const getActivity = (id: number): Activity | undefined => allActivities.find((a) => a.id === id);
+
+  const getActivitiesForMoment = (mk: MomentKey): Activity[] => {
+    const actIds = currentLessonPlan.moments?.[mk]?.activities || [];
+    return actIds.map((id) => getActivity(id)).filter(Boolean) as Activity[];
+  };
+
+  const isPublished = currentLessonPlan.status === 'published';
+
+  const momentSections: { key: MomentKey; name: string }[] = [
+    { key: 'apertura', name: 'Actividad de Apertura' },
+    { key: 'desarrollo', name: 'Actividad de Desarrollo' },
+    { key: 'cierre', name: 'Actividad de Cierre' },
+  ];
+
+  const selectedContent = selectedActivity
+    ? (currentLessonPlan.moments?.[selectedActivity.momentKey]?.activityContent?.[
+        String(selectedActivity.activityId)
+      ] || '')
+    : '';
+
+  const selectedActivityName = selectedActivity
+    ? getActivity(selectedActivity.activityId)?.name || 'Actividad'
+    : '';
+
+  return (
+    <div className="h-screen flex flex-col gradient-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#DAD5F6] bg-[#FFFFFF26] backdrop-blur-sm">
+        <button
+          onClick={() => navigate(`/teacher/courses/${currentLessonPlan.course_subject_id}`)}
+          className="cursor-pointer hover:opacity-70"
+        >
+          <ChevronLeft className="w-6 h-6 text-[#324155]" />
+        </button>
+        <div className="flex items-center gap-2">
+          <h1 className="header-title text-[#10182B]">
+            {currentLessonPlan.title || `Clase ${currentLessonPlan.class_number}`}
+          </h1>
+          <CloudCheck className="w-5 h-5 text-[#324155]" />
+        </div>
+        <div className="flex items-center gap-3">
+          {!isPublished && (
+            <GenerateButton
+              onClick={handleGenerateAll}
+              label="Generar contenido"
+              isGenerating={isGenerating}
+              variant="ghost"
+              size="sm"
+            />
+          )}
+          <Button
+            onClick={!isPublished ? handlePublish : undefined}
+            disabled={isPublished || isGenerating}
+            className={`flex items-center gap-2 text-primary bg-muted border-none rounded-xl ${
+              isPublished ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-muted hover:text-primary'
+            }`}
+          >
+            <Share className="w-4 h-4 text-primary" />
+            {isPublished ? 'Publicado' : 'Publicar'}
+          </Button>
+          <button
+            onClick={() => navigate(`/teacher/courses/${currentLessonPlan.course_subject_id}`)}
+            className="cursor-pointer hover:opacity-70"
+          >
+            <X className="w-6 h-6 text-[#324155]" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden p-6 gap-6">
+        {/* Left: Chat */}
+        <div className="w-80 flex flex-col">
+          <ChatPanel
+            entityType="lesson-plan"
+            entityId={planId}
+            onEntityUpdated={refetchPlan}
+            placeholder="Escribi tu mensaje para Alizia..."
+            welcomeMessage={{
+              title: 'Plan de clase',
+              content: 'Si necesitas ajustar algo, escribime y lo resolvemos.',
+            }}
+            isGenerating={isGenerating}
+          />
+        </div>
+
+        {/* Center: Moments */}
+        <div className="flex-1 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+          <div className="p-4 px-6 border-b border-[#DAD5F6] h-14 flex items-center">
+            <h3 className="headline-1-bold text-[#10182B]">
+              {currentLessonPlan.title || `Clase ${currentLessonPlan.class_number}`}
+            </h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="space-y-6">
+              {/* Objective */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Objetivo</h4>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {currentLessonPlan.objective || currentLessonPlan.coord_class.objective || 'Sin objetivo'}
+                </p>
+              </div>
+
+              {/* Topics */}
+              {currentLessonPlan.coord_class.topics.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Temas</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {currentLessonPlan.coord_class.topics.map((t) => (
+                      <span key={t.id} className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                        {t.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Activity cards by moment */}
+              {momentSections.map((section) => {
+                const activities = getActivitiesForMoment(section.key);
+                return (
+                  <div key={section.key}>
+                    <h4 className="font-semibold text-gray-900 mb-3">{section.name}</h4>
+                    {activities.length > 0 ? (
+                      <div className="flex flex-wrap gap-4">
+                        {activities.map((activity) => (
+                          <div
+                            key={activity.id}
+                            onClick={() => setSelectedActivity({ momentKey: section.key, activityId: activity.id })}
+                            className={`cursor-pointer bg-white border rounded-2xl p-4 flex flex-col justify-between min-w-[200px] max-w-[280px] flex-1 transition-all hover:shadow-md group ${
+                              selectedActivity?.activityId === activity.id
+                                ? 'border-primary shadow-md'
+                                : 'border-[#E4E8EF]'
+                            }`}
+                          >
+                            <h5 className="text-sm font-medium text-gray-900 mb-3">{activity.name}</h5>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <Clock className="w-4 h-4" />
+                                <span className="text-xs">10 min</span>
+                              </div>
+                              <ArrowRight className="w-5 h-5 text-gray-500 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Sin actividades seleccionadas</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Activity content panel */}
+        {selectedActivity && (
+          <div className="w-96 flex flex-col">
+            <ActivityContentEditor
+              activityName={selectedActivityName}
+              content={selectedContent}
+              onSave={(newContent) =>
+                handleSaveContent(selectedActivity.momentKey, selectedActivity.activityId, newContent)
+              }
+              onClose={() => setSelectedActivity(null)}
+              isLoading={!selectedContent && isGenerating}
+              readOnly={isPublished}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

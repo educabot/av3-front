@@ -1,0 +1,120 @@
+import { useNavigate } from 'react-router-dom';
+import { FileText, Users, BarChart3 } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+import { useReferenceStore } from '@/store/referenceStore';
+import { useCoordinationStore } from '@/store/coordinationStore';
+import { DocumentCard } from '@/components/coordination/DocumentCard';
+import { PlanningProgressBar } from '@/components/dashboard/PlanningProgressBar';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { CourseOverview } from '@/components/dashboard/CourseOverview';
+import { PublishedDocumentsCard } from '@/components/dashboard/PublishedDocumentsCard';
+import { MOCK_PLANNING_PROGRESS } from '@/mocks/mock-config';
+
+export function CoordinatorHome() {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const courses = useReferenceStore((s) => s.courses);
+  const courseSubjects = useReferenceStore((s) => s.courseSubjects);
+  const documents = useCoordinationStore((s) => s.documents);
+
+  const firstName = user?.name.split(' ')[0] || '';
+
+  // Use mock progress for now (backend Phase 7 will provide real data)
+  const planningProgress = MOCK_PLANNING_PROGRESS;
+
+  const publishedCount = documents.filter((d) => d.status === 'published').length;
+  const inProgressCount = documents.filter((d) => d.status === 'in_progress').length;
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="mb-8">
+        <h1 className="title-2-emphasized text-[#10182B]">Hola {firstName},</h1>
+        <p className="body-2-regular text-muted-foreground mt-1">
+          Resumen de tu trabajo como coordinador
+        </p>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-4 mb-8 dashboard-section">
+        <StatsCard
+          icon={FileText}
+          label="Documentos"
+          value={documents.length}
+          sublabel={`${publishedCount} publicados`}
+        />
+        <StatsCard
+          icon={Users}
+          label="Cursos"
+          value={courses.length}
+          onClick={() => navigate(`/coordinator/courses/${courses[0]?.id}`)}
+        />
+        <StatsCard
+          icon={BarChart3}
+          label="En progreso"
+          value={inProgressCount}
+          sublabel="documentos activos"
+        />
+      </div>
+
+      <div className="grid grid-cols-[1fr_320px] gap-6">
+        {/* Left: Documents */}
+        <div>
+          <h2 className="headline-1-bold text-[#10182B] mb-4">Documentos de coordinacion</h2>
+          {documents.length > 0 ? (
+            <div className="space-y-3">
+              {documents.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  document={doc}
+                  onClick={() => navigate(`/coordinator/documents/${doc.id}`)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 activity-card-bg rounded-2xl">
+              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="headline-1-bold text-foreground mb-2">Sin documentos</h3>
+              <p className="body-2-regular text-muted-foreground">
+                Selecciona un curso para crear un documento de coordinacion.
+              </p>
+            </div>
+          )}
+
+          {/* Course list */}
+          <h2 className="headline-1-bold text-[#10182B] mb-4 mt-8">Mis cursos</h2>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+            {courses.map((course) => (
+              <CourseOverview
+                key={course.id}
+                course={course}
+                subjectCount={courseSubjects.filter((cs) => cs.course_id === course.id).length}
+                onClick={() => navigate(`/coordinator/courses/${course.id}`)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Published docs + Planning progress */}
+        <div className="space-y-6">
+          <PublishedDocumentsCard
+            documents={documents}
+            onViewDocument={(doc) => navigate(`/coordinator/documents/${doc.id}`)}
+          />
+
+          <div>
+            <h2 className="headline-1-bold text-[#10182B] mb-4">Progreso de planificacion</h2>
+            <div className="activity-card-bg rounded-2xl p-4 space-y-4">
+              {planningProgress.length > 0 ? (
+                planningProgress.map((p) => (
+                  <PlanningProgressBar key={p.course_subject_id} progress={p} />
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">Sin datos de progreso</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
