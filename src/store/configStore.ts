@@ -8,7 +8,7 @@ const DEFAULT_CONFIG: OrgConfig = {
   shared_classes_enabled: false,
   desarrollo_max_activities: 3,
   coord_doc_sections: [],
-  modules: {},
+  features: {},
 };
 
 interface ConfigState {

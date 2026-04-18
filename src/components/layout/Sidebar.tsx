@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { House, FileText, FolderKanban, Layers } from 'lucide-react';
+import { House, FileText, FolderKanban, Layers, BookOpen, GraduationCap, Network, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { useFeatureFlag, useNomenclature } from '@/hooks/useOrgConfig';
@@ -12,7 +12,7 @@ interface NavItem {
   label: string;
   /** Si se provee, el usuario debe tener AL MENOS uno de estos roles. */
   roles?: UserRole[];
-  /** Feature flag de `org_config.modules` que debe estar habilitado. */
+  /** Feature flag de `org_config.features` que debe estar habilitado. */
   module?: 'contenido' | 'planificacion';
 }
 
@@ -62,6 +62,30 @@ export function Sidebar({ className }: { className?: string }) {
         to: '/admin/areas',
         icon: <Layers className='w-5 h-5' />,
         label: 'Areas',
+        roles: ['admin'],
+      },
+      {
+        to: '/admin/subjects',
+        icon: <BookOpen className='w-5 h-5' />,
+        label: 'Asignaturas',
+        roles: ['admin'],
+      },
+      {
+        to: '/admin/courses',
+        icon: <GraduationCap className='w-5 h-5' />,
+        label: 'Cursos',
+        roles: ['admin'],
+      },
+      {
+        to: '/admin/topics',
+        icon: <Network className='w-5 h-5' />,
+        label: 'Temas',
+        roles: ['admin'],
+      },
+      {
+        to: '/admin/activities',
+        icon: <ListChecks className='w-5 h-5' />,
+        label: 'Actividades',
         roles: ['admin'],
       },
     ];

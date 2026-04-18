@@ -3,32 +3,6 @@ import { authApi } from '@/services/api';
 import { setAuthToken, getAuthToken, setOnUnauthorized } from '@/services/api-client';
 import type { User, UserRole } from '@/types';
 
-/** Mock users for local dev without backend */
-const MOCK_USERS: Record<string, User> = {
-  'coord@neuquen.edu.ar': {
-    id: 2,
-    name: 'Carlos Coordinador',
-    email: 'coord@neuquen.edu.ar',
-    avatar: '',
-    roles: ['coordinator'],
-  },
-  'teacher1@neuquen.edu.ar': {
-    id: 3,
-    name: 'María Docente',
-    email: 'teacher1@neuquen.edu.ar',
-    avatar: '',
-    roles: ['teacher'],
-  },
-  'teacher2@neuquen.edu.ar': {
-    id: 4,
-    name: 'Pedro Multirol',
-    email: 'teacher2@neuquen.edu.ar',
-    avatar: '',
-    roles: ['teacher', 'coordinator'],
-  },
-  'admin@neuquen.edu.ar': { id: 1, name: 'Ana Admin', email: 'admin@neuquen.edu.ar', avatar: '', roles: ['admin'] },
-};
-
 // =============================================================================
 // Session persistence (RFC §4.1 — sessionStorage, no localStorage)
 // =============================================================================
@@ -86,18 +60,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       setAuthToken(token);
       writeStoredUser(user);
       set({ user, isLoading: false });
-    } catch {
-      // Mock login only in dev mode — Vite tree-shakes this out of production builds
-      if (import.meta.env.DEV) {
-        const mockUser = MOCK_USERS[email];
-        if (mockUser) {
-          console.warn('[Alizia] Backend unavailable — using mock login for', email);
-          setAuthToken('mock-token');
-          writeStoredUser(mockUser);
-          set({ user: mockUser, isLoading: false });
-          return;
-        }
-      }
+    } catch (err) {
+      console.error('[auth] login failed:', err);
       set({ error: 'Error al iniciar sesion. Verifica tus credenciales.', isLoading: false });
     }
   },

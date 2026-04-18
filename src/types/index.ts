@@ -11,13 +11,12 @@ export interface PaginatedResponse<T> {
 }
 
 // --- API Errors ---
-
+// El shape viene del team-ai-toolkit (web.Error): { code, description }.
+// Algunos errores incluyen un objeto `details` extra cuando aplica.
 export interface APIErrorBody {
-  error: {
-    code: string;
-    message: string;
-    details?: Record<string, unknown>;
-  };
+  code: string;
+  description: string;
+  details?: Record<string, unknown>;
 }
 
 // --- Auth ---
@@ -35,7 +34,9 @@ export interface LoginResponse {
 export type UserRole = 'teacher' | 'coordinator' | 'admin';
 
 export interface User {
-  id: number;
+  // El back usa strings para IDs de usuario (convención team-ai-toolkit).
+  // Coercioná en el punto de uso si necesitás comparar con IDs numéricos.
+  id: string;
   name: string;
   email: string;
   avatar?: string;
@@ -56,11 +57,10 @@ export interface JWTClaims {
 // --- Organization & Config (Cosmos) ---
 
 export interface Organization {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   config: OrgConfig;
-  created_at: string;
 }
 
 export interface OrgConfig {
@@ -70,7 +70,7 @@ export interface OrgConfig {
   shared_classes_enabled: boolean;
   desarrollo_max_activities: number;
   coord_doc_sections: SectionConfig[];
-  modules: Record<string, boolean>;
+  features: Record<string, boolean>;
   visual_identity?: {
     platform_name: string;
     logo_url: string | null;
@@ -81,25 +81,30 @@ export interface OrgConfig {
     max_generation_length: number;
     max_chat_interactions: number;
   };
-  onboarding?: {
-    allow_skip: boolean;
-    profile_fields: ProfileField[];
-    tour_steps: TourStep[];
-  };
+  onboarding?: OnboardingConfig;
+}
+
+export interface OnboardingConfig {
+  skip_allowed: boolean;
+  profile_fields: ProfileField[];
+  tour_steps: TourStep[];
 }
 
 export interface ProfileField {
   key: string;
   label: string;
-  type: 'text' | 'select' | 'multiselect';
+  type: 'text' | 'number' | 'select' | 'multiselect';
   options?: string[];
   required: boolean;
 }
 
 export interface TourStep {
-  target: string;
+  key: string;
   title: string;
   description: string;
+  order: number;
+  roles?: UserRole[];
+  requires_feature?: string;
 }
 
 // --- Topics (reemplaza ProblematicNucleus, KnowledgeArea, Category) ---
@@ -110,48 +115,84 @@ export interface Topic {
   description?: string;
   level: number;
   parent_id: number | null;
-  children: Topic[];
+  children?: Topic[];
 }
 
 // --- Areas ---
+
+export interface UserCompact {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string | null;
+}
+
+export interface AreaCoordinator {
+  id: number;
+  area_id: number;
+  user: UserCompact | null;
+}
 
 export interface Area {
   id: number;
   name: string;
   description?: string;
-  created_at: string;
+  subjects?: Subject[];
+  coordinators?: AreaCoordinator[];
 }
 
 // --- Subjects ---
 
 export interface Subject {
   id: number;
-  name: string;
   area_id: number;
-  area_name?: string;
-  created_at: string;
+  name: string;
+  description?: string;
 }
 
 // --- Courses ---
 
+// A course is atemporal: it has no school year of its own.
+// The academic year lives in course_subjects[].school_year (fuente de verdad RFC).
 export interface Course {
   id: number;
   name: string;
-  school_year: number;
-  created_at: string;
+  students?: Student[];
+  course_subjects?: CourseSubject[];
+}
+
+// --- Students ---
+
+export interface Student {
+  id: number;
+  course_id: number;
+  name: string;
 }
 
 // --- Course Subjects ---
 
+export interface SubjectCompact {
+  id: number;
+  name: string;
+}
+
+export interface TeacherCompact {
+  id: number;
+  first_name: string;
+  last_name: string;
+}
+
 export interface CourseSubject {
   id: number;
   course_id: number;
-  course_name: string;
   subject_id: number;
-  subject_name: string;
-  teacher_id: number | null;
-  teacher_name: string | null;
+  teacher_id: number;
   school_year: number;
+  start_date?: string;
+  end_date?: string;
+  subject: SubjectCompact;
+  teacher: TeacherCompact | null;
 }
 
 // --- Time Slots ---
@@ -173,6 +214,12 @@ export interface TimeSlotSubject {
   teacher_name: string | null;
 }
 
+export interface SharedClassNumbersResponse {
+  course_subject_id: number;
+  total_classes: number;
+  shared_class_numbers: number[];
+}
+
 // --- Activities ---
 
 export type MomentKey = 'apertura' | 'desarrollo' | 'cierre';
@@ -182,6 +229,7 @@ export interface Activity {
   name: string;
   description?: string;
   moment: MomentKey;
+  duration_minutes?: number;
 }
 
 // --- Dynamic Sections (Coord Doc) ---

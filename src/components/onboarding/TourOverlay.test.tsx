@@ -5,9 +5,9 @@ import { TourOverlay } from './TourOverlay';
 import type { TourStep } from '@/types';
 
 const STEPS: TourStep[] = [
-  { target: '.nav', title: 'Navegacion', description: 'Desde aqui accedes a todo.' },
-  { target: '.dashboard', title: 'Dashboard', description: 'Tu panel principal.' },
-  { target: '.resources', title: 'Recursos', description: 'Materiales educativos.' },
+  { key: 'nav', title: 'Navegacion', description: 'Desde aqui accedes a todo.', order: 1 },
+  { key: 'dashboard', title: 'Dashboard', description: 'Tu panel principal.', order: 2 },
+  { key: 'resources', title: 'Recursos', description: 'Materiales educativos.', order: 3 },
 ];
 
 describe('TourOverlay', () => {

@@ -51,22 +51,20 @@ const mockCourseSubjects: CourseSubject[] = [
   {
     id: 10,
     course_id: 1,
-    course_name: '1A',
     subject_id: 1,
-    subject_name: 'Matematicas',
     teacher_id: 3,
-    teacher_name: 'Maria',
     school_year: 2026,
+    subject: { id: 1, name: 'Matematicas' },
+    teacher: { id: 3, first_name: 'Maria', last_name: 'Docente' },
   },
   {
     id: 11,
     course_id: 2,
-    course_name: '1B',
     subject_id: 2,
-    subject_name: 'Fisica',
     teacher_id: 3,
-    teacher_name: 'Maria',
     school_year: 2026,
+    subject: { id: 2, name: 'Fisica' },
+    teacher: { id: 3, first_name: 'Maria', last_name: 'Docente' },
   },
 ];
 

@@ -3,12 +3,14 @@ import type { Course } from '@/types';
 
 interface CourseOverviewProps {
   course: Course;
+  // Optional: caller decides which school year to show (derived from course_subjects).
+  schoolYear?: number;
   subjectCount?: number;
   onClick: () => void;
   className?: string;
 }
 
-export function CourseOverview({ course, subjectCount, onClick, className }: CourseOverviewProps) {
+export function CourseOverview({ course, schoolYear, subjectCount, onClick, className }: CourseOverviewProps) {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -28,7 +30,7 @@ export function CourseOverview({ course, subjectCount, onClick, className }: Cou
       )}
     >
       <h4 className='text-sm font-medium text-gray-900'>{course.name}</h4>
-      <p className='text-xs text-gray-500 mt-0.5'>Ciclo {course.school_year}</p>
+      {typeof schoolYear === 'number' && <p className='text-xs text-gray-500 mt-0.5'>Ciclo {schoolYear}</p>}
       {typeof subjectCount === 'number' && (
         <p className='text-xs text-gray-400 mt-1'>
           {subjectCount} {subjectCount === 1 ? 'materia' : 'materias'}

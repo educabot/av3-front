@@ -15,9 +15,15 @@ vi.mock('react-router-dom', async () => {
 });
 
 const completeMock = vi.fn();
+const saveProfileMock = vi.fn();
+const getConfigMock = vi.fn();
+const getTourStepsMock = vi.fn();
 vi.mock('@/services/api', () => ({
   onboardingApi: {
     complete: (...args: unknown[]) => completeMock(...args),
+    saveProfile: (...args: unknown[]) => saveProfileMock(...args),
+    getConfig: (...args: unknown[]) => getConfigMock(...args),
+    getTourSteps: (...args: unknown[]) => getTourStepsMock(...args),
   },
 }));
 
@@ -92,7 +98,7 @@ const BASE_CONFIG: OrgConfig = {
   shared_classes_enabled: true,
   desarrollo_max_activities: 3,
   coord_doc_sections: [],
-  modules: {},
+  features: {},
 };
 
 function configWith(onboarding: OrgConfig['onboarding']): OrgConfig {
@@ -112,17 +118,22 @@ function renderPage() {
 describe('Onboarding page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reject by default so the page keeps its orgConfig-derived fallback state,
+    // which is what every test below asserts against.
+    getConfigMock.mockRejectedValue(new Error('offline'));
+    getTourStepsMock.mockRejectedValue(new Error('offline'));
+    saveProfileMock.mockResolvedValue({});
     useAuthStore.setState({ user: teacherUser });
     useConfigStore.setState({
       orgConfig: configWith({
-        allow_skip: true,
+        skip_allowed: true,
         profile_fields: [
           { key: 'school', label: 'Escuela', type: 'text', required: true },
           { key: 'grade', label: 'Grado', type: 'text', required: false },
         ],
         tour_steps: [
-          { target: '#a', title: 'Uno', description: 'Primer paso' },
-          { target: '#b', title: 'Dos', description: 'Segundo paso' },
+          { key: 'a', title: 'Uno', description: 'Primer paso', order: 1 },
+          { key: 'b', title: 'Dos', description: 'Segundo paso', order: 2 },
         ],
       }),
     });
@@ -133,8 +144,8 @@ describe('Onboarding page', () => {
       useConfigStore.setState({
         orgConfig: {
           ...BASE_CONFIG,
-          visual_identity: { platform_name: 'Cosmos' },
-          onboarding: { allow_skip: true, profile_fields: [], tour_steps: [] },
+          visual_identity: { platform_name: 'Cosmos', logo_url: null, primary_color: '#000' },
+          onboarding: { skip_allowed: true, profile_fields: [], tour_steps: [] },
         },
       });
       renderPage();
@@ -148,7 +159,7 @@ describe('Onboarding page', () => {
 
     it('hides the skip link when allow_skip is false', () => {
       useConfigStore.setState({
-        orgConfig: configWith({ allow_skip: false, profile_fields: [], tour_steps: [] }),
+        orgConfig: configWith({ skip_allowed: false, profile_fields: [], tour_steps: [] }),
       });
       renderPage();
       expect(screen.queryByRole('button', { name: /Omitir por ahora/i })).not.toBeInTheDocument();
@@ -164,9 +175,9 @@ describe('Onboarding page', () => {
     it('skips straight to the tour step when there are no profile fields', async () => {
       useConfigStore.setState({
         orgConfig: configWith({
-          allow_skip: true,
+          skip_allowed: true,
           profile_fields: [],
-          tour_steps: [{ target: '#x', title: 't', description: 'd' }],
+          tour_steps: [{ key: 'x', title: 't', description: 'd', order: 1 }],
         }),
       });
       renderPage();
@@ -177,7 +188,7 @@ describe('Onboarding page', () => {
 
     it('jumps to the done step when there is neither profile nor tour', async () => {
       useConfigStore.setState({
-        orgConfig: configWith({ allow_skip: true, profile_fields: [], tour_steps: [] }),
+        orgConfig: configWith({ skip_allowed: true, profile_fields: [], tour_steps: [] }),
       });
       renderPage();
       const user = userEvent.setup();
@@ -225,11 +236,11 @@ describe('Onboarding page', () => {
     it('advances tour steps via the onNext callback', async () => {
       useConfigStore.setState({
         orgConfig: configWith({
-          allow_skip: true,
+          skip_allowed: true,
           profile_fields: [],
           tour_steps: [
-            { target: '#a', title: 'Uno', description: 'P' },
-            { target: '#b', title: 'Dos', description: 'S' },
+            { key: 'a', title: 'Uno', description: 'P', order: 1 },
+            { key: 'b', title: 'Dos', description: 'S', order: 2 },
           ],
         }),
       });
@@ -249,9 +260,9 @@ describe('Onboarding page', () => {
     it('skipping the tour jumps straight to the done step', async () => {
       useConfigStore.setState({
         orgConfig: configWith({
-          allow_skip: true,
+          skip_allowed: true,
           profile_fields: [],
-          tour_steps: [{ target: '#a', title: 'Uno', description: 'P' }],
+          tour_steps: [{ key: 'a', title: 'Uno', description: 'P', order: 1 }],
         }),
       });
       renderPage();
@@ -266,7 +277,7 @@ describe('Onboarding page', () => {
     it('completes onboarding and navigates when clicking "Ir al dashboard"', async () => {
       completeMock.mockResolvedValue(undefined);
       useConfigStore.setState({
-        orgConfig: configWith({ allow_skip: true, profile_fields: [], tour_steps: [] }),
+        orgConfig: configWith({ skip_allowed: true, profile_fields: [], tour_steps: [] }),
       });
       renderPage();
       const user = userEvent.setup();
@@ -280,7 +291,7 @@ describe('Onboarding page', () => {
     it('still navigates when the complete API call fails (mock-mode fallback)', async () => {
       completeMock.mockRejectedValue(new Error('offline'));
       useConfigStore.setState({
-        orgConfig: configWith({ allow_skip: true, profile_fields: [], tour_steps: [] }),
+        orgConfig: configWith({ skip_allowed: true, profile_fields: [], tour_steps: [] }),
       });
       renderPage();
       const user = userEvent.setup();

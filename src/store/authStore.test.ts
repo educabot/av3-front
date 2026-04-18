@@ -46,11 +46,10 @@ describe('authStore', () => {
       expect(useAuthStore.getState().isLoading).toBe(false);
     });
 
-    it('sets error when login fails and email is not a dev mock user', async () => {
+    it('sets error when login fails', async () => {
       const { authApi } = await import('@/services/api');
       vi.mocked(authApi.login).mockRejectedValueOnce(new Error('Credenciales invalidas'));
 
-      // In dev mode, mock fallback kicks in — email not in MOCK_USERS so error is set
       await useAuthStore.getState().login('bad@test.com', 'wrong');
 
       expect(useAuthStore.getState().user).toBeNull();
@@ -58,19 +57,6 @@ describe('authStore', () => {
       expect(useAuthStore.getState().isLoading).toBe(false);
       expect(sessionStorage.getItem('alizia_auth_token')).toBeNull();
       expect(sessionStorage.getItem('alizia_auth_user')).toBeNull();
-    });
-
-    it('uses mock fallback in dev for known mock users when backend fails', async () => {
-      const { authApi } = await import('@/services/api');
-      vi.mocked(authApi.login).mockRejectedValueOnce(new Error('network'));
-
-      await useAuthStore.getState().login('coord@neuquen.edu.ar', 'anything');
-
-      const user = useAuthStore.getState().user;
-      expect(user).not.toBeNull();
-      expect(user?.email).toBe('coord@neuquen.edu.ar');
-      expect(apiClient.getAuthToken()).toBe('mock-token');
-      expect(sessionStorage.getItem('alizia_auth_user')).toContain('Carlos Coordinador');
     });
   });
 

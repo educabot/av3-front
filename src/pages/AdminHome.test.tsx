@@ -47,15 +47,11 @@ describe('AdminHome', () => {
     expect(link).toHaveTextContent('2');
   });
 
-  it('renders disabled cards for entities without backend edit support', () => {
+  it('links to all admin sections enabled in the UI', () => {
     renderHome();
-    // These should NOT be rendered as links since the endpoints do not exist
-    expect(screen.queryByRole('link', { name: /Ir a Asignaturas/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Ir a Cursos/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Ir a Temas/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Ir a Actividades/i })).not.toBeInTheDocument();
-    // But they should still appear as headings
-    expect(screen.getByRole('heading', { name: 'Asignaturas' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Cursos' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Ir a Asignaturas/i })).toHaveAttribute('href', '/admin/subjects');
+    expect(screen.getByRole('link', { name: /Ir a Cursos/i })).toHaveAttribute('href', '/admin/courses');
+    expect(screen.getByRole('link', { name: /Ir a Temas/i })).toHaveAttribute('href', '/admin/topics');
+    expect(screen.getByRole('link', { name: /Ir a Actividades/i })).toHaveAttribute('href', '/admin/activities');
   });
 });

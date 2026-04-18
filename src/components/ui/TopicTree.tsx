@@ -113,7 +113,7 @@ function TopicNode({
       {/* Children */}
       {hasChildren && isExpanded && (
         <div className='ml-4 border-l border-gray-200 pl-1'>
-          {topic.children.map((child) => (
+          {topic.children?.map((child) => (
             <TopicNode
               key={child.id}
               topic={child}

@@ -39,7 +39,7 @@ export function Resources() {
   const subjectOptions = uniqueSubjectIds
     .map((csId) => {
       const cs = courseSubjects.find((c) => c.id === csId);
-      return cs ? { id: csId, name: cs.subject_name } : null;
+      return cs ? { id: csId, name: cs.subject.name } : null;
     })
     .filter(Boolean) as { id: number; name: string }[];
 

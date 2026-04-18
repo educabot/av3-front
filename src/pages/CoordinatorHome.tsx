@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { FileText, Users, BarChart3 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCoursesQuery, useCourseSubjectsQuery } from '@/hooks/queries/useReferenceQueries';
@@ -10,7 +11,7 @@ import { PlanningProgressBar } from '@/components/dashboard/PlanningProgressBar'
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CourseOverview } from '@/components/dashboard/CourseOverview';
 import { PublishedDocumentsCard } from '@/components/dashboard/PublishedDocumentsCard';
-import { MOCK_PLANNING_PROGRESS } from '@/mocks/mock-config';
+import { dashboardApi } from '@/services/api';
 
 export function CoordinatorHome() {
   const navigate = useNavigate();
@@ -25,8 +26,11 @@ export function CoordinatorHome() {
 
   const firstName = user?.name.split(' ')[0] || '';
 
-  // Use mock progress for now (backend Phase 7 will provide real data)
-  const planningProgress = MOCK_PLANNING_PROGRESS;
+  const { data: dashboard } = useQuery({
+    queryKey: ['dashboard', 'coordinator'],
+    queryFn: () => dashboardApi.getCoordinator(),
+  });
+  const planningProgress = dashboard?.planning_progress ?? [];
 
   const publishedCount = documents.filter((d) => d.status === 'published').length;
   const inProgressCount = documents.filter((d) => d.status === 'in_progress').length;
@@ -88,14 +92,18 @@ export function CoordinatorHome() {
           {/* Course list */}
           <h2 className='headline-1-bold text-[#10182B] mb-4 mt-8'>Mis {coursePluralLabel.toLowerCase()}</h2>
           <div className='grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3'>
-            {courses.map((course) => (
-              <CourseOverview
-                key={course.id}
-                course={course}
-                subjectCount={courseSubjects.filter((cs) => cs.course_id === course.id).length}
-                onClick={() => navigate(`/coordinator/courses/${course.id}`)}
-              />
-            ))}
+            {courses.map((course) => {
+              const courseCs = courseSubjects.filter((cs) => cs.course_id === course.id);
+              return (
+                <CourseOverview
+                  key={course.id}
+                  course={course}
+                  schoolYear={courseCs[0]?.school_year}
+                  subjectCount={courseCs.length}
+                  onClick={() => navigate(`/coordinator/courses/${course.id}`)}
+                />
+              );
+            })}
           </div>
         </div>
 

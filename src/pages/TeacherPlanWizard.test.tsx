@@ -86,9 +86,8 @@ function makeActivity(id: number, moment: MomentKey): Activity {
     id,
     name: `Actividad ${id}`,
     description: '',
-    moments: [moment],
-    created_at: '2026-01-01',
-  } as Activity;
+    moment,
+  };
 }
 
 const font: Font = {
@@ -105,7 +104,7 @@ const BASE_CONFIG: OrgConfig = {
   shared_classes_enabled: true,
   desarrollo_max_activities: 3,
   coord_doc_sections: [],
-  modules: {},
+  features: {},
 };
 
 let queryClient: ReturnType<typeof createTestQueryClient>;

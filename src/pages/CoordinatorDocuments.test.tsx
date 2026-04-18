@@ -55,8 +55,8 @@ function makeDoc(id: number, overrides: Partial<CoordinationDocument> = {}): Coo
 }
 
 const mockAreas: Area[] = [
-  { id: 1, name: 'Matematicas', created_at: '2026-01-01' },
-  { id: 2, name: 'Lengua', created_at: '2026-01-01' },
+  { id: 1, name: 'Matematicas' },
+  { id: 2, name: 'Lengua' },
 ];
 
 let queryClient: ReturnType<typeof createTestQueryClient>;

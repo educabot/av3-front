@@ -1,37 +1,27 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Bell } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { useCourseSubjectsQuery } from '@/hooks/queries/useReferenceQueries';
+import { useCourseSubjectsQuery, useCoursesQuery } from '@/hooks/queries/useReferenceQueries';
 import { DataState } from '@/components/DataState';
 import { useNomenclature } from '@/hooks/useOrgConfig';
-import { NotificationList } from '@/components/dashboard/NotificationList';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { PendingPlansCard } from '@/components/dashboard/PendingPlansCard';
 import { UpcomingClassesWidget } from '@/components/dashboard/UpcomingClassesWidget';
-import { MOCK_NOTIFICATIONS } from '@/mocks/mock-config';
-import type { Notification } from '@/types';
 
 export function TeacherHome() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { data: courseSubjects = [], isLoading, error } = useCourseSubjectsQuery();
+  const { data: courses = [] } = useCoursesQuery();
   const subjectPluralLabel = useNomenclature('subject_plural');
+  const courseNameById = new Map(courses.map((c) => [c.id, c.name]));
 
   const firstName = user?.name.split(' ')[0] || '';
-  const teacherId = user?.id;
+  // user.id es string (toolkit), teacher_id es number — comparamos coercionando.
+  const teacherId = user?.id ? Number(user.id) : undefined;
 
   // Filter teacher's course-subjects
   const myCourseSubjects = courseSubjects.filter((cs) => cs.teacher_id === teacherId);
-
-  // Use mock notifications (backend Phase 7 will provide real data)
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
-
-  const handleMarkAsRead = (id: number) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  };
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <div className='max-w-6xl mx-auto px-6 py-8'>
@@ -41,7 +31,7 @@ export function TeacherHome() {
       </div>
 
       {/* Stats row */}
-      <div className='grid grid-cols-3 gap-4 mb-8 dashboard-section'>
+      <div className='grid grid-cols-2 gap-4 mb-8 dashboard-section'>
         <StatsCard icon={BookOpen} label={subjectPluralLabel} value={myCourseSubjects.length} />
         <PendingPlansCard
           plans={[]}
@@ -52,12 +42,6 @@ export function TeacherHome() {
               navigate(`/teacher/courses/${plan.course_subject_id}/plans/${plan.class_number}/new`);
             }
           }}
-        />
-        <StatsCard
-          icon={Bell}
-          label='Notificaciones'
-          value={unreadCount}
-          sublabel={unreadCount > 0 ? 'sin leer' : 'al dia'}
         />
       </div>
 
@@ -90,9 +74,9 @@ export function TeacherHome() {
                   className='bg-white border border-[#E4E8EF] rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md hover:border-primary/30 group'
                 >
                   <h4 className='text-sm font-medium text-gray-900 group-hover:text-primary transition-colors'>
-                    {cs.subject_name}
+                    {cs.subject.name}
                   </h4>
-                  <p className='text-xs text-gray-500 mt-0.5'>{cs.course_name}</p>
+                  <p className='text-xs text-gray-500 mt-0.5'>{courseNameById.get(cs.course_id) ?? ''}</p>
                   <p className='text-xs text-gray-400 mt-1'>Ciclo {cs.school_year}</p>
                 </div>
               ))}
@@ -100,16 +84,9 @@ export function TeacherHome() {
           </DataState>
         </div>
 
-        {/* Right: Upcoming classes + Notifications */}
+        {/* Right: Upcoming classes */}
         <div className='space-y-6'>
           <UpcomingClassesWidget items={[]} emptyMessage='Disponible pronto' />
-
-          <div>
-            <h2 className='headline-1-bold text-[#10182B] mb-4'>Notificaciones</h2>
-            <div className='activity-card-bg rounded-2xl p-4'>
-              <NotificationList notifications={notifications} onMarkAsRead={handleMarkAsRead} />
-            </div>
-          </div>
         </div>
       </div>
     </div>

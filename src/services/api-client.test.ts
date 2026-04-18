@@ -91,6 +91,14 @@ describe('api-client', () => {
       const headers = mockFetch.mock.calls[0][1].headers;
       expect(headers.Authorization).toBeUndefined();
     });
+
+    it('unwraps the `description` envelope from team-ai-toolkit responses', async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ description: { id: '1', name: 'Ana' } }));
+
+      const result = await apiClient.get<{ id: string; name: string }>('/auth/login');
+
+      expect(result).toEqual({ id: '1', name: 'Ana' });
+    });
   });
 
   describe('POST requests', () => {
@@ -113,9 +121,7 @@ describe('api-client', () => {
     it('throws APIError on 400 with error body', async () => {
       mockFetch.mockResolvedValueOnce(
         jsonResponse(
-          {
-            error: { code: 'VALIDATION_ERROR', message: 'Invalid email', details: { field: 'email' } },
-          },
+          { code: 'VALIDATION_ERROR', description: 'Invalid email', details: { field: 'email' } },
           400,
         ),
       );
@@ -125,12 +131,7 @@ describe('api-client', () => {
 
     it('parses error code and message from body', async () => {
       mockFetch.mockResolvedValueOnce(
-        jsonResponse(
-          {
-            error: { code: 'NOT_FOUND', message: 'User not found' },
-          },
-          404,
-        ),
+        jsonResponse({ code: 'NOT_FOUND', description: 'User not found' }, 404),
       );
 
       try {
@@ -150,12 +151,7 @@ describe('api-client', () => {
       setOnUnauthorized(onUnauth);
 
       mockFetch.mockResolvedValueOnce(
-        jsonResponse(
-          {
-            error: { code: 'UNAUTHORIZED', message: 'Token expired' },
-          },
-          401,
-        ),
+        jsonResponse({ code: 'UNAUTHORIZED', description: 'Token expired' }, 401),
       );
 
       try {

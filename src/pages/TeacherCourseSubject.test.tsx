@@ -15,22 +15,21 @@ vi.mock('@/services/api', () => ({
   courseSubjectsApi: {},
 }));
 
-const mockCourses: Course[] = [{ id: 10, name: '1A', school_year: 2026, created_at: '2026-01-01' }];
+const mockCourses: Course[] = [{ id: 10, name: '1A' }];
 
-const mockAreas: Area[] = [{ id: 100, name: 'Matematicas', created_at: '2026-01-01' }];
+const mockAreas: Area[] = [{ id: 100, name: 'Matematicas' }];
 
-const mockSubjects: Subject[] = [{ id: 200, name: 'Algebra', area_id: 100, created_at: '2026-01-01' }];
+const mockSubjects: Subject[] = [{ id: 200, name: 'Algebra', area_id: 100 }];
 
 const mockCourseSubjects: CourseSubject[] = [
   {
     id: 1,
     course_id: 10,
-    course_name: '1A',
     subject_id: 200,
-    subject_name: 'Algebra',
     teacher_id: 3,
-    teacher_name: 'Maria',
     school_year: 2026,
+    subject: { id: 200, name: 'Algebra' },
+    teacher: { id: 3, first_name: 'Maria', last_name: 'Docente' },
   },
 ];
 

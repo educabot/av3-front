@@ -1,24 +1,40 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { useConfigStore } from '@/store/configStore';
-import { useAuthStore } from '@/store/authStore';
 import { ProfileForm } from '@/components/onboarding/ProfileForm';
 import { TourOverlay } from '@/components/onboarding/TourOverlay';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { onboardingApi } from '@/services/api';
+import type { OnboardingConfig, ProfileField, TourStep } from '@/types';
 
 type OnboardingStep = 'welcome' | 'profile' | 'tour' | 'done';
 
 export function Onboarding() {
   const navigate = useNavigate();
   const orgConfig = useConfigStore((s) => s.orgConfig);
-  const getUserRole = useAuthStore((s) => s.getUserRole);
 
-  const profileFields = orgConfig.onboarding?.profile_fields || [];
-  const tourSteps = orgConfig.onboarding?.tour_steps || [];
-  const allowSkip = orgConfig.onboarding?.allow_skip ?? true;
+  const [profileFields, setProfileFields] = useState<ProfileField[]>(orgConfig.onboarding?.profile_fields ?? []);
+  const [tourSteps, setTourSteps] = useState<TourStep[]>(orgConfig.onboarding?.tour_steps ?? []);
+  const [allowSkip, setAllowSkip] = useState<boolean>(orgConfig.onboarding?.skip_allowed ?? true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([onboardingApi.getConfig(), onboardingApi.getTourSteps()])
+      .then(([cfg, steps]: [OnboardingConfig, TourStep[]]) => {
+        if (cancelled) return;
+        setProfileFields(cfg.profile_fields ?? []);
+        setAllowSkip(cfg.skip_allowed ?? true);
+        setTourSteps(steps ?? []);
+      })
+      .catch(() => {
+        // Backend unavailable — keep the defaults pulled from orgConfig (which itself falls back to mocks).
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const hasProfile = profileFields.length > 0;
   const hasTour = tourSteps.length > 0;
@@ -53,19 +69,20 @@ export function Onboarding() {
   const handleComplete = async () => {
     setIsCompleting(true);
     try {
-      await onboardingApi.complete(profileData);
+      if (hasProfile && Object.keys(profileData).length > 0) {
+        await onboardingApi.saveProfile(profileData);
+      }
+      await onboardingApi.complete();
     } catch {
       // Mock mode — just navigate
     }
-    const role = getUserRole();
-    navigate(role === 'coordinator' ? '/' : '/', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const handleSkip = async () => {
     await handleComplete();
   };
 
-  // Calculate progress
   const steps = ['welcome', hasProfile && 'profile', hasTour && 'tour', 'done'].filter(Boolean);
   const currentIdx = steps.indexOf(step);
   const progress = ((currentIdx + 1) / steps.length) * 100;
@@ -81,7 +98,6 @@ export function Onboarding() {
         <div className='max-w-lg mx-auto pb-24'>
           <Progress value={progress} className='mb-8 h-2' />
 
-          {/* Welcome */}
           {step === 'welcome' && (
             <div className='text-center space-y-6 pt-12'>
               <div className='w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto'>
@@ -111,7 +127,6 @@ export function Onboarding() {
             </div>
           )}
 
-          {/* Profile */}
           {step === 'profile' && (
             <div className='space-y-6'>
               <div className='space-y-2'>
@@ -125,7 +140,6 @@ export function Onboarding() {
             </div>
           )}
 
-          {/* Tour */}
           {step === 'tour' && (
             <>
               <div className='text-center space-y-4 pt-12'>
@@ -147,7 +161,6 @@ export function Onboarding() {
             </>
           )}
 
-          {/* Done */}
           {step === 'done' && (
             <div className='text-center space-y-6 pt-12'>
               <div className='w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto'>
@@ -168,7 +181,6 @@ export function Onboarding() {
         </div>
       </div>
 
-      {/* Footer for profile step */}
       {step === 'profile' && (
         <div className='relative backdrop-blur-sm'>
           <div className='max-w-lg mx-auto px-6 py-4 flex justify-between items-center'>

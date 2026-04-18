@@ -10,8 +10,8 @@ import { CoordinatorHome } from './CoordinatorHome';
 import type { Course, CoordinationDocument } from '@/types';
 
 const mockCourses: Course[] = [
-  { id: 1, name: '1A', school_year: 2026, created_at: '2026-01-01' },
-  { id: 2, name: '1B', school_year: 2026, created_at: '2026-01-01' },
+  { id: 1, name: '1A' },
+  { id: 2, name: '1B' },
 ];
 
 const mockDocuments: CoordinationDocument[] = [

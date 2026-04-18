@@ -23,7 +23,7 @@ describe('RequireModule', () => {
   it('renders children when module is enabled', () => {
     useConfigStore.getState().setOrgConfig({
       ...useConfigStore.getState().orgConfig,
-      modules: { contenido: true },
+      features: { contenido: true },
     });
 
     renderWithRouter(
@@ -48,7 +48,7 @@ describe('RequireModule', () => {
   it('redirects to / when module is disabled', () => {
     useConfigStore.getState().setOrgConfig({
       ...useConfigStore.getState().orgConfig,
-      modules: { contenido: false },
+      features: { contenido: false },
     });
 
     renderWithRouter(

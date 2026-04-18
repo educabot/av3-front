@@ -18,15 +18,21 @@ import type {
   LoginResponse,
   MomentKey,
   Notification,
+  OnboardingConfig,
   OnboardingStatus,
+  Organization,
+  OrgConfig,
   PaginatedResponse,
   PlanningProgress,
   Resource,
   ResourceCreate,
   ResourceType,
+  SharedClassNumbersResponse,
+  Student,
   Subject,
   TimeSlot,
   Topic,
+  TourStep,
   User,
 } from '@/types';
 
@@ -63,7 +69,8 @@ export const subjectsApi = {
     const query = params?.area_id ? `/subjects?area_id=${params.area_id}` : '/subjects';
     return fetchPaginated<Subject>(query, params?.limit, params?.offset);
   },
-  create: (data: { name: string; area_id: number }) => apiClient.post<Subject>('/subjects', data),
+  create: (data: { name: string; area_id: number; description?: string }) =>
+    apiClient.post<Subject>('/subjects', data),
 };
 
 // =============================================================================
@@ -74,8 +81,10 @@ export const coursesApi = {
   list: (params?: { limit?: number; offset?: number }) =>
     fetchPaginated<Course>('/courses', params?.limit, params?.offset),
   getById: (id: number) => apiClient.get<Course>(`/courses/${id}`),
-  create: (data: { name: string; school_year: number }) => apiClient.post<Course>('/courses', data),
-  getTimeSlots: (courseId: number) => apiClient.get<PaginatedResponse<TimeSlot>>(`/courses/${courseId}/time-slots`),
+  create: (data: { name: string }) => apiClient.post<Course>('/courses', data),
+  addStudent: (courseId: number, data: { name: string }) =>
+    apiClient.post<Student>(`/courses/${courseId}/students`, data),
+  getSchedule: (courseId: number) => apiClient.get<TimeSlot[]>(`/courses/${courseId}/schedule`),
   createTimeSlot: (
     courseId: number,
     data: {
@@ -108,6 +117,10 @@ export const courseSubjectsApi = {
     end_date: string;
     school_year: number;
   }) => apiClient.post<CourseSubject>('/course-subjects', data),
+  getSharedClassNumbers: (id: number, totalClasses: number) =>
+    apiClient.get<SharedClassNumbersResponse>(
+      `/course-subjects/${id}/shared-class-numbers?total_classes=${totalClasses}`,
+    ),
 };
 
 // =============================================================================
@@ -124,6 +137,8 @@ export const topicsApi = {
   },
   create: (data: { name: string; description?: string; parent_id: number | null }) =>
     apiClient.post<Topic>('/topics', data),
+  update: (id: number, data: { name?: string; description?: string; parent_id?: number | null }) =>
+    apiClient.patch<Topic>(`/topics/${id}`, data),
 };
 
 // =============================================================================
@@ -234,7 +249,9 @@ export const chatApi = {
 // =============================================================================
 
 export const orgApi = {
-  getConfig: () => apiClient.get<{ config: import('@/types').OrgConfig }>('/org/config'),
+  getMy: () => apiClient.get<Organization>('/organizations/me'),
+  updateConfig: (configPatch: Partial<OrgConfig>) =>
+    apiClient.patch<Organization>('/organizations/me/config', { config: configPatch }),
 };
 
 // =============================================================================
@@ -243,8 +260,11 @@ export const orgApi = {
 
 export const onboardingApi = {
   getStatus: () => apiClient.get<OnboardingStatus>('/users/me/onboarding-status'),
-  complete: (profileData?: Record<string, unknown>) =>
-    apiClient.post<void>('/users/me/onboarding/complete', profileData ?? {}),
+  complete: () => apiClient.post<{ status: string }>('/users/me/onboarding/complete', {}),
+  getConfig: () => apiClient.get<OnboardingConfig>('/onboarding-config'),
+  getProfile: () => apiClient.get<Record<string, unknown>>('/users/me/profile'),
+  saveProfile: (data: Record<string, unknown>) => apiClient.put<Record<string, unknown>>('/users/me/profile', data),
+  getTourSteps: () => apiClient.get<TourStep[]>('/users/me/onboarding/tour-steps'),
 };
 
 // =============================================================================

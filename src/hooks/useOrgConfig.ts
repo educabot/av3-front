@@ -23,10 +23,10 @@ export function useOrgConfig(): OrgConfig {
   return useConfigStore((s) => s.orgConfig);
 }
 
-/** Check if a module is enabled via feature flags. Defaults to true if not set. */
-export function useFeatureFlag(module: string): boolean {
-  const modules = useConfigStore((s) => s.orgConfig.modules);
-  return modules[module] ?? true;
+/** Check if a feature is enabled via feature flags. Defaults to true if not set. */
+export function useFeatureFlag(feature: string): boolean {
+  const features = useConfigStore((s) => s.orgConfig.features);
+  return features[feature] ?? true;
 }
 
 /** Get a display name from org nomenclature, with sensible defaults */

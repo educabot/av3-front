@@ -113,14 +113,14 @@ import { Wizard } from './Wizard';
 // --- Fixtures -----------------------------------------------------------------
 
 const mockAreas: Area[] = [
-  { id: 1, name: 'Matematicas', created_at: '2026-01-01' },
-  { id: 2, name: 'Lengua', created_at: '2026-01-01' },
+  { id: 1, name: 'Matematicas' },
+  { id: 2, name: 'Lengua' },
 ];
 
 const mockSubjects: Subject[] = [
-  { id: 10, name: 'Algebra', area_id: 1, area_name: 'Matematicas', created_at: '2026-01-01' },
-  { id: 11, name: 'Geometria', area_id: 1, area_name: 'Matematicas', created_at: '2026-01-01' },
-  { id: 20, name: 'Literatura', area_id: 2, area_name: 'Lengua', created_at: '2026-01-01' },
+  { id: 10, name: 'Algebra', area_id: 1 },
+  { id: 11, name: 'Geometria', area_id: 1 },
+  { id: 20, name: 'Literatura', area_id: 2 },
 ];
 
 const mockTopics: Topic[] = [

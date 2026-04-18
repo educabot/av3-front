@@ -9,7 +9,7 @@ const TEST_CONFIG: OrgConfig = {
   shared_classes_enabled: true,
   desarrollo_max_activities: 5,
   coord_doc_sections: [],
-  modules: { contenido: false, planificacion: true },
+  features: { contenido: false, planificacion: true },
   visual_identity: { platform_name: 'Test Platform', logo_url: null, primary_color: '#ff0000' },
 };
 
@@ -30,7 +30,7 @@ describe('configStore', () => {
     const state = useConfigStore.getState();
     expect(state.isLoaded).toBe(true);
     expect(state.orgConfig.topic_max_levels).toBe(4);
-    expect(state.orgConfig.modules.contenido).toBe(false);
+    expect(state.orgConfig.features.contenido).toBe(false);
     expect(state.orgConfig.visual_identity?.platform_name).toBe('Test Platform');
   });
 

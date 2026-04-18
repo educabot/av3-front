@@ -36,7 +36,7 @@ describe('MainLayout', () => {
         shared_classes_enabled: true,
         desarrollo_max_activities: 3,
         coord_doc_sections: [],
-        modules: { contenido: true, planificacion: true },
+        features: { contenido: true, planificacion: true },
       },
     });
     useUiStore.setState({ sidebarOpen: true });

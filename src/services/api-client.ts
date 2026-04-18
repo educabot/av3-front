@@ -77,6 +77,18 @@ export function setOnUnauthorized(callback: () => void) {
 // Core request function
 // =============================================================================
 
+/**
+ * Desenvuelve el shape `{ description: T }` del team-ai-toolkit (web.OK).
+ * Alizia-BE, cronos y tich devuelven todos los payloads 2xx envueltos.
+ * Si no hay wrapper, devuelve el body tal cual.
+ */
+function unwrapSuccess<T>(body: unknown): T {
+  if (body && typeof body === 'object' && 'description' in body) {
+    return (body as { description: T }).description;
+  }
+  return body as T;
+}
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const extraHeaders = options?.headers instanceof Headers
     ? Object.fromEntries(options.headers.entries())
@@ -101,7 +113,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   // 204 No Content — callers using delete/void endpoints should type T as void
   if (res.status === 204) return undefined as unknown as T;
 
-  // Error handling
+  // Error handling — shape toolkit: { code, description, details? }
   if (!res.ok) {
     let errorBody: APIErrorBody | null = null;
     try {
@@ -110,9 +122,9 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
       throw new APIError('NETWORK_ERROR', `Error de red: ${res.status} ${res.statusText}`, undefined, res.status);
     }
 
-    const code = errorBody?.error?.code ?? 'UNKNOWN_ERROR';
-    const message = errorBody?.error?.message ?? 'Error desconocido';
-    const details = errorBody?.error?.details;
+    const code = errorBody?.code ?? 'UNKNOWN_ERROR';
+    const message = errorBody?.description ?? 'Error desconocido';
+    const details = errorBody?.details;
 
     if (res.status === 401) {
       onUnauthorized?.();
@@ -122,7 +134,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw new APIError(code, message, details, res.status);
   }
 
-  return res.json();
+  return unwrapSuccess<T>(await res.json());
 }
 
 // =============================================================================

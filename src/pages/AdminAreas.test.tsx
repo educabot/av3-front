@@ -38,7 +38,6 @@ function makeArea(id: number, overrides: Partial<Area> = {}): Area {
     id,
     name: `Area ${id}`,
     description: undefined,
-    created_at: '2026-01-01',
     ...overrides,
   };
 }

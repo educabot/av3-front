@@ -42,7 +42,7 @@ export function TeacherCourseSubject() {
         >
           <ChevronLeft className='text-[#10182B]' />
           <h1 className='title-2-emphasized text-[#10182B]'>
-            {cs.course_name} - {cs.subject_name}
+            {course.name} - {cs.subject.name}
           </h1>
         </button>
       </div>
@@ -51,7 +51,7 @@ export function TeacherCourseSubject() {
       <div className='mb-8 flex gap-4 text-sm text-gray-600'>
         {subjectArea && <span>Area: {subjectArea.name}</span>}
         <span>Curso: {course.name}</span>
-        <span>Ciclo: {course.school_year}</span>
+        <span>Ciclo: {cs.school_year}</span>
       </div>
 
       {/* Lesson plan list */}

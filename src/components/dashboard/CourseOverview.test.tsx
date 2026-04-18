@@ -6,15 +6,18 @@ import type { Course } from '@/types';
 const baseCourse: Course = {
   id: 1,
   name: '6to A',
-  school_year: 2026,
-  created_at: '2026-01-01',
 };
 
 describe('CourseOverview', () => {
-  it('shows the course name and school year', () => {
-    render(<CourseOverview course={baseCourse} onClick={() => {}} />);
+  it('shows the course name and the school year when provided', () => {
+    render(<CourseOverview course={baseCourse} schoolYear={2026} onClick={() => {}} />);
     expect(screen.getByText('6to A')).toBeInTheDocument();
     expect(screen.getByText('Ciclo 2026')).toBeInTheDocument();
+  });
+
+  it('omits the school year line when schoolYear is not provided', () => {
+    render(<CourseOverview course={baseCourse} onClick={() => {}} />);
+    expect(screen.queryByText(/Ciclo/)).not.toBeInTheDocument();
   });
 
   it('does not render subject count when omitted', () => {

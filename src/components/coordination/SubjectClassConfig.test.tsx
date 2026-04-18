@@ -9,8 +9,8 @@ import {
 import type { Subject, Topic } from '@/types';
 
 const subjects: Subject[] = [
-  { id: 1, name: 'Algebra', area_id: 10, created_at: '2026-01-01' },
-  { id: 2, name: 'Geometria', area_id: 10, created_at: '2026-01-01' },
+  { id: 1, name: 'Algebra', area_id: 10 },
+  { id: 2, name: 'Geometria', area_id: 10 },
 ];
 
 const topics: Topic[] = [

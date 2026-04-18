@@ -80,9 +80,9 @@ export function Course() {
                 {courseCourseSubjects.map((cs) => (
                   <div key={cs.id} className='flex items-center justify-between p-4 bg-[#FFFFFF4D] rounded-xl'>
                     <div>
-                      <h4 className='headline-2-semi-bold text-[#10182B]'>{cs.subject_name}</h4>
+                      <h4 className='headline-2-semi-bold text-[#10182B]'>{cs.subject.name}</h4>
                       <p className='body-2-regular text-muted-foreground'>
-                        {cs.teacher_name ?? 'Sin docente asignado'}
+                        {cs.teacher ? `${cs.teacher.first_name} ${cs.teacher.last_name}` : 'Sin docente asignado'}
                       </p>
                     </div>
                   </div>
@@ -144,7 +144,16 @@ export function Course() {
           <div className='fill-primary backdrop-blur-sm border-slate-200 rounded-2xl p-6'>
             <div className='space-y-4'>
               <InfoRow label='NOMBRE' value={course.name} />
-              <InfoRow label='CICLO LECTIVO' value={String(course.school_year)} />
+              <InfoRow
+                label='CICLO LECTIVO'
+                value={
+                  // school_year lives in course_subjects (un curso es atemporal).
+                  // Si hay varios años distintos, los listamos separados por coma.
+                  Array.from(new Set(courseCourseSubjects.map((cs) => cs.school_year)))
+                    .sort((a, b) => a - b)
+                    .join(', ') || '—'
+                }
+              />
               <InfoRow label='MATERIAS' value={String(courseCourseSubjects.length)} />
               <InfoRow
                 label='ÁREAS'

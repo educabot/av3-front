@@ -58,7 +58,7 @@ describe('Sidebar', () => {
         shared_classes_enabled: true,
         desarrollo_max_activities: 3,
         coord_doc_sections: [],
-        modules: { contenido: true, planificacion: true },
+        features: { contenido: true, planificacion: true },
       },
     });
   });
@@ -101,7 +101,7 @@ describe('Sidebar', () => {
         shared_classes_enabled: true,
         desarrollo_max_activities: 3,
         coord_doc_sections: [],
-        modules: { contenido: false, planificacion: true },
+        features: { contenido: false, planificacion: true },
       },
     });
     renderSidebar();

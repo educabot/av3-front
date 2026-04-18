@@ -66,13 +66,9 @@ export function useActivitiesByMomentQuery() {
 }
 
 export function useFontsQuery() {
+  // BE /fonts exige area_id — hasta que exista un listado global, devolvemos vacío.
   return useQuery({
     queryKey: referenceKeys.fonts,
-    queryFn: async () => {
-      // Fonts are currently seeded by App.tsx bootstrap / mocks.
-      // A proper queryFn will be added when the font listing endpoint
-      // no longer requires a mandatory area_id filter.
-      return [] as import('@/types').Font[];
-    },
+    queryFn: async () => [] as import('@/types').Font[],
   });
 }

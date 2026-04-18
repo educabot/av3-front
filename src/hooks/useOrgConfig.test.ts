@@ -24,7 +24,7 @@ describe('useOrgConfig hooks', () => {
     it('returns false when module is disabled', () => {
       useConfigStore.getState().setOrgConfig({
         ...useConfigStore.getState().orgConfig,
-        modules: { contenido: false },
+        features: { contenido: false },
       });
 
       const { result } = renderHook(() => useFeatureFlag('contenido'));
@@ -34,7 +34,7 @@ describe('useOrgConfig hooks', () => {
     it('returns true when module is enabled', () => {
       useConfigStore.getState().setOrgConfig({
         ...useConfigStore.getState().orgConfig,
-        modules: { planificacion: true },
+        features: { planificacion: true },
       });
 
       const { result } = renderHook(() => useFeatureFlag('planificacion'));
