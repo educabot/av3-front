@@ -34,3 +34,7 @@ av3-neuquen
 
 # Local debug artifacts
 output.json
+
+# Scripts and skill files
+*.sh
+SKILL.md
