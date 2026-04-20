@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Subject } from '@/types';
 
 interface SubjectFormState {
   name: string;
@@ -36,20 +37,36 @@ export function AdminSubjects() {
     {},
   );
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'closed' | 'create' | 'edit'>('closed');
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [form, setForm] = useState<SubjectFormState>(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<Subject | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const areaNameById = new Map(areas.map((a) => [a.id, a.name]));
 
   const openCreate = () => {
+    setEditingSubject(null);
     setForm(EMPTY_FORM);
-    setDialogOpen(true);
+    setDialogMode('create');
+  };
+
+  const openEdit = (subject: Subject) => {
+    setEditingSubject(subject);
+    setForm({
+      name: subject.name,
+      description: subject.description ?? '',
+      area_id: String(subject.area_id),
+    });
+    setDialogMode('edit');
   };
 
   const closeDialog = () => {
     if (isSubmitting) return;
-    setDialogOpen(false);
+    setDialogMode('closed');
+    setEditingSubject(null);
     setForm(EMPTY_FORM);
   };
 
@@ -58,16 +75,23 @@ export function AdminSubjects() {
     const name = form.name.trim();
     const areaId = Number(form.area_id);
     if (!name || !areaId) return;
+    const payload = {
+      name,
+      area_id: areaId,
+      description: form.description.trim() || undefined,
+    };
     setIsSubmitting(true);
     try {
-      await subjectsApi.create({
-        name,
-        area_id: areaId,
-        description: form.description.trim() || undefined,
-      });
-      toastSuccess('Asignatura creada');
+      if (dialogMode === 'edit' && editingSubject) {
+        await subjectsApi.update(editingSubject.id, payload);
+        toastSuccess('Asignatura actualizada');
+      } else {
+        await subjectsApi.create(payload);
+        toastSuccess('Asignatura creada');
+      }
       await Promise.all([reload(), queryClient.invalidateQueries({ queryKey: referenceKeys.subjects })]);
-      setDialogOpen(false);
+      setDialogMode('closed');
+      setEditingSubject(null);
       setForm(EMPTY_FORM);
     } catch (err) {
       showApiError(err);
@@ -76,14 +100,27 @@ export function AdminSubjects() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await subjectsApi.delete(deleteTarget.id);
+      toastSuccess('Asignatura eliminada');
+      await Promise.all([reload(), queryClient.invalidateQueries({ queryKey: referenceKeys.subjects })]);
+      setDeleteTarget(null);
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className='max-w-4xl mx-auto px-6 py-8'>
       <div className='flex items-start justify-between mb-6'>
         <div>
           <h1 className='title-2-emphasized text-[#10182B]'>Asignaturas</h1>
-          <p className='body-2-regular text-muted-foreground mt-1'>
-            Gestiona las asignaturas de tu organizacion.
-          </p>
+          <p className='body-2-regular text-muted-foreground mt-1'>Gestiona las asignaturas de tu organizacion.</p>
         </div>
         <Button onClick={openCreate} className='gap-2' disabled={areas.length === 0}>
           <Plus className='w-4 h-4' />
@@ -130,9 +167,8 @@ export function AdminSubjects() {
                 <Button
                   variant='outline'
                   size='sm'
-                  disabled
-                  title='El backend aun no soporta editar asignaturas'
-                  aria-label={`Editar ${subject.name} (no disponible)`}
+                  onClick={() => openEdit(subject)}
+                  aria-label={`Editar ${subject.name}`}
                   className='gap-1'
                 >
                   <Pencil className='w-4 h-4' />
@@ -141,10 +177,9 @@ export function AdminSubjects() {
                 <Button
                   variant='outline'
                   size='sm'
-                  disabled
-                  title='El backend aun no soporta eliminar asignaturas'
-                  aria-label={`Eliminar ${subject.name} (no disponible)`}
-                  className='gap-1 text-red-600'
+                  onClick={() => setDeleteTarget(subject)}
+                  aria-label={`Eliminar ${subject.name}`}
+                  className='gap-1 text-red-600 hover:text-red-700 hover:bg-red-50'
                 >
                   <Trash2 className='w-4 h-4' />
                   Eliminar
@@ -163,11 +198,21 @@ export function AdminSubjects() {
         )}
       </DataState>
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
+      {/* Create/Edit dialog */}
+      <Dialog
+        open={dialogMode !== 'closed'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nueva asignatura</DialogTitle>
-            <DialogDescription>Completa los datos para crear una nueva asignatura.</DialogDescription>
+            <DialogTitle>{dialogMode === 'edit' ? 'Editar asignatura' : 'Nueva asignatura'}</DialogTitle>
+            <DialogDescription>
+              {dialogMode === 'edit'
+                ? 'Actualiza los datos de la asignatura. Los cambios se aplican inmediatamente.'
+                : 'Completa los datos para crear una nueva asignatura.'}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div className='space-y-2'>
@@ -210,10 +255,41 @@ export function AdminSubjects() {
                 Cancelar
               </Button>
               <Button type='submit' disabled={isSubmitting || !form.name.trim() || !form.area_id}>
-                {isSubmitting ? 'Guardando...' : 'Crear'}
+                {isSubmitting ? 'Guardando...' : dialogMode === 'edit' ? 'Guardar cambios' : 'Crear'}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar asignatura</DialogTitle>
+            <DialogDescription>
+              Esta accion no se puede deshacer. Se eliminara la asignatura <strong>{deleteTarget?.name}</strong> de tu
+              organizacion.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type='button' variant='outline' onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button
+              type='button'
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className='bg-red-600 hover:bg-red-700 text-white'
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

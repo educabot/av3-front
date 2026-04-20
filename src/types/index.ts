@@ -151,6 +151,12 @@ export interface Subject {
   description?: string;
 }
 
+export interface SubjectUpdate {
+  name?: string;
+  area_id?: number;
+  description?: string;
+}
+
 // --- Courses ---
 
 // A course is atemporal: it has no school year of its own.
@@ -160,6 +166,10 @@ export interface Course {
   name: string;
   students?: Student[];
   course_subjects?: CourseSubject[];
+}
+
+export interface CourseUpdate {
+  name?: string;
 }
 
 // --- Students ---
@@ -193,6 +203,13 @@ export interface CourseSubject {
   end_date?: string;
   subject: SubjectCompact;
   teacher: TeacherCompact | null;
+}
+
+export interface CourseSubjectUpdate {
+  teacher_id?: number;
+  school_year?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 // --- Time Slots ---
@@ -229,6 +246,13 @@ export interface Activity {
   name: string;
   description?: string;
   moment: MomentKey;
+  duration_minutes?: number;
+}
+
+export interface ActivityUpdate {
+  name?: string;
+  description?: string;
+  moment?: MomentKey;
   duration_minutes?: number;
 }
 

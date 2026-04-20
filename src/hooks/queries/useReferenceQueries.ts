@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { areasApi, coursesApi, subjectsApi, topicsApi, courseSubjectsApi, activitiesApi } from '@/services/api';
-import type { Activity } from '@/types';
+import type { Activity, ActivityUpdate, CourseSubjectUpdate, CourseUpdate, SubjectUpdate } from '@/types';
 
 export const referenceKeys = {
   areas: ['areas'] as const,
@@ -70,5 +70,126 @@ export function useFontsQuery() {
   return useQuery({
     queryKey: referenceKeys.fonts,
     queryFn: async () => [] as import('@/types').Font[],
+  });
+}
+
+// =============================================================================
+// Mutations — Subjects
+// =============================================================================
+
+export function useUpdateSubjectMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: SubjectUpdate }) => subjectsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.subjects });
+    },
+  });
+}
+
+export function useDeleteSubjectMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => subjectsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.subjects });
+    },
+  });
+}
+
+// =============================================================================
+// Mutations — Topics
+// =============================================================================
+
+export function useDeleteTopicMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => topicsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.topics });
+    },
+  });
+}
+
+// =============================================================================
+// Mutations — Activities
+// =============================================================================
+
+export function useActivityQuery(id: number) {
+  return useQuery({
+    queryKey: ['activity', id] as const,
+    queryFn: () => activitiesApi.getById(id),
+    enabled: id > 0,
+  });
+}
+
+export function useUpdateActivityMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ActivityUpdate }) => activitiesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.activitiesByMoment });
+    },
+  });
+}
+
+export function useDeleteActivityMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => activitiesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.activitiesByMoment });
+    },
+  });
+}
+
+// =============================================================================
+// Mutations — Courses
+// =============================================================================
+
+export function useUpdateCourseMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CourseUpdate }) => coursesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.courses });
+    },
+  });
+}
+
+export function useDeleteCourseMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => coursesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.courses });
+      queryClient.invalidateQueries({ queryKey: referenceKeys.courseSubjects });
+    },
+  });
+}
+
+// =============================================================================
+// Mutations — Course Subjects
+// =============================================================================
+
+export function useUpdateCourseSubjectMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CourseSubjectUpdate }) => courseSubjectsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.courseSubjects });
+      queryClient.invalidateQueries({ queryKey: referenceKeys.courses });
+    },
+  });
+}
+
+export function useDeleteCourseSubjectMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => courseSubjectsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: referenceKeys.courseSubjects });
+      queryClient.invalidateQueries({ queryKey: referenceKeys.courses });
+    },
   });
 }

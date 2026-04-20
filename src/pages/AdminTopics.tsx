@@ -54,6 +54,9 @@ export function AdminTopics() {
   const [form, setForm] = useState<TopicFormState>(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [deleteTarget, setDeleteTarget] = useState<Topic | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const openCreate = (parent?: Topic) => {
     setEditingTopic(null);
     setForm({ ...EMPTY_FORM, parent_id: parent?.id ?? null });
@@ -179,10 +182,55 @@ export function AdminTopics() {
               levelNames={levelNames}
               onAddChild={(t) => openCreate(t)}
               onEdit={openEdit}
+              onDelete={setDeleteTarget}
             />
           ))}
         </ul>
       </DataState>
+
+      {/* Delete confirmation */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar tema</DialogTitle>
+            <DialogDescription>
+              Esta accion no se puede deshacer. Se eliminara el tema <strong>{deleteTarget?.name}</strong>
+              {(deleteTarget?.children?.length ?? 0) > 0 && ' y todos sus subtemas'}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type='button' variant='outline' onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button
+              type='button'
+              onClick={async () => {
+                if (!deleteTarget) return;
+                setIsDeleting(true);
+                try {
+                  await topicsApi.delete(deleteTarget.id);
+                  toastSuccess('Tema eliminado');
+                  await refreshAll();
+                  setDeleteTarget(null);
+                } catch (err) {
+                  showApiError(err);
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting}
+              className='bg-red-600 hover:bg-red-700 text-white'
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit */}
       <Dialog open={dialogMode !== 'closed'} onOpenChange={(open) => !open && closeDialog()}>
@@ -245,7 +293,6 @@ export function AdminTopics() {
           </form>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
@@ -256,6 +303,7 @@ function TopicRow({
   levelNames,
   onAddChild,
   onEdit,
+  onDelete,
   depth = 0,
 }: {
   topic: Topic;
@@ -263,6 +311,7 @@ function TopicRow({
   levelNames: string[];
   onAddChild: (parent: Topic) => void;
   onEdit: (topic: Topic) => void;
+  onDelete: (topic: Topic) => void;
   depth?: number;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -291,7 +340,9 @@ function TopicRow({
             <span className='body-2-regular text-[#10182B] font-medium truncate'>{topic.name}</span>
             <span className='text-xs text-muted-foreground bg-primary/5 px-2 py-0.5 rounded'>{levelLabel}</span>
           </div>
-          {topic.description && <p className='text-xs text-muted-foreground mt-0.5 line-clamp-1'>{topic.description}</p>}
+          {topic.description && (
+            <p className='text-xs text-muted-foreground mt-0.5 line-clamp-1'>{topic.description}</p>
+          )}
         </div>
         <div className='flex items-center gap-1 shrink-0'>
           {canAddChild && (
@@ -312,10 +363,9 @@ function TopicRow({
           <Button
             variant='outline'
             size='sm'
-            disabled
-            title='El backend aun no soporta eliminar temas'
-            aria-label={`Eliminar ${topic.name} (no disponible)`}
-            className='text-red-600'
+            onClick={() => onDelete(topic)}
+            aria-label={`Eliminar ${topic.name}`}
+            className='text-red-600 hover:text-red-700 hover:bg-red-50'
           >
             <Trash2 className='w-3.5 h-3.5' />
           </Button>
@@ -331,6 +381,7 @@ function TopicRow({
               levelNames={levelNames}
               onAddChild={onAddChild}
               onEdit={onEdit}
+              onDelete={onDelete}
               depth={depth + 1}
             />
           ))}

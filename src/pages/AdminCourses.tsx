@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Course, DayOfWeek } from '@/types';
+import type { Course, CourseSubject, DayOfWeek } from '@/types';
 
 const DAY_LABEL: Record<DayOfWeek, string> = {
   monday: 'Lunes',
@@ -46,21 +46,50 @@ export function AdminCourses() {
     {},
   );
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'closed' | 'create' | 'edit'>('closed');
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openCreate = () => {
+    setEditingCourse(null);
+    setName('');
+    setDialogMode('create');
+  };
+
+  const openEdit = (course: Course) => {
+    setEditingCourse(course);
+    setName(course.name);
+    setDialogMode('edit');
+  };
+
+  const closeDialog = () => {
+    if (isSubmitting) return;
+    setDialogMode('closed');
+    setEditingCourse(null);
+    setName('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
     setIsSubmitting(true);
     try {
-      await coursesApi.create({ name: trimmed });
-      toastSuccess('Curso creado');
+      if (dialogMode === 'edit' && editingCourse) {
+        await coursesApi.update(editingCourse.id, { name: trimmed });
+        toastSuccess('Curso actualizado');
+      } else {
+        await coursesApi.create({ name: trimmed });
+        toastSuccess('Curso creado');
+      }
       await Promise.all([reload(), queryClient.invalidateQueries({ queryKey: referenceKeys.courses })]);
-      setCreateOpen(false);
+      setDialogMode('closed');
+      setEditingCourse(null);
       setName('');
     } catch (err) {
       showApiError(err);
@@ -69,16 +98,33 @@ export function AdminCourses() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await coursesApi.delete(deleteTarget.id);
+      toastSuccess('Curso eliminado');
+      await Promise.all([
+        reload(),
+        queryClient.invalidateQueries({ queryKey: referenceKeys.courses }),
+        queryClient.invalidateQueries({ queryKey: referenceKeys.courseSubjects }),
+      ]);
+      setDeleteTarget(null);
+    } catch (err) {
+      showApiError(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className='max-w-4xl mx-auto px-6 py-8'>
       <div className='flex items-start justify-between mb-6'>
         <div>
           <h1 className='title-2-emphasized text-[#10182B]'>Cursos</h1>
-          <p className='body-2-regular text-muted-foreground mt-1'>
-            Gestiona los cursos y alumnos de tu organizacion.
-          </p>
+          <p className='body-2-regular text-muted-foreground mt-1'>Gestiona los cursos y alumnos de tu organizacion.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className='gap-2'>
+        <Button onClick={openCreate} className='gap-2'>
           <Plus className='w-4 h-4' />
           Nuevo curso
         </Button>
@@ -94,7 +140,7 @@ export function AdminCourses() {
             <GraduationCap className='w-12 h-12 text-muted-foreground mx-auto mb-4' />
             <h3 className='headline-1-bold text-foreground mb-2'>Aun no hay cursos</h3>
             <p className='body-2-regular text-muted-foreground mb-4'>Crea el primer curso.</p>
-            <Button onClick={() => setCreateOpen(true)} className='gap-2'>
+            <Button onClick={openCreate} className='gap-2'>
               <Plus className='w-4 h-4' />
               Nuevo curso
             </Button>
@@ -122,9 +168,8 @@ export function AdminCourses() {
                 <Button
                   variant='outline'
                   size='sm'
-                  disabled
-                  title='El backend aun no soporta editar cursos'
-                  aria-label={`Editar ${course.name} (no disponible)`}
+                  onClick={() => openEdit(course)}
+                  aria-label={`Editar ${course.name}`}
                   className='gap-1'
                 >
                   <Pencil className='w-4 h-4' />
@@ -133,10 +178,9 @@ export function AdminCourses() {
                 <Button
                   variant='outline'
                   size='sm'
-                  disabled
-                  title='El backend aun no soporta eliminar cursos'
-                  aria-label={`Eliminar ${course.name} (no disponible)`}
-                  className='gap-1 text-red-600'
+                  onClick={() => setDeleteTarget(course)}
+                  aria-label={`Eliminar ${course.name}`}
+                  className='gap-1 text-red-600 hover:text-red-700 hover:bg-red-50'
                 >
                   <Trash2 className='w-4 h-4' />
                   Eliminar
@@ -155,13 +199,23 @@ export function AdminCourses() {
         )}
       </DataState>
 
-      <Dialog open={createOpen} onOpenChange={(open) => !isSubmitting && setCreateOpen(open)}>
+      {/* Create/Edit dialog */}
+      <Dialog
+        open={dialogMode !== 'closed'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nuevo curso</DialogTitle>
-            <DialogDescription>Crea un curso — luego podras agregar alumnos y asignaciones.</DialogDescription>
+            <DialogTitle>{dialogMode === 'edit' ? 'Editar curso' : 'Nuevo curso'}</DialogTitle>
+            <DialogDescription>
+              {dialogMode === 'edit'
+                ? 'Actualiza el nombre del curso.'
+                : 'Crea un curso — luego podras agregar alumnos y asignaciones.'}
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreate} className='space-y-4'>
+          <form onSubmit={handleSubmit} className='space-y-4'>
             <div className='space-y-2'>
               <Label htmlFor='course-name'>Nombre</Label>
               <Input
@@ -174,14 +228,45 @@ export function AdminCourses() {
               />
             </div>
             <DialogFooter>
-              <Button type='button' variant='outline' onClick={() => setCreateOpen(false)} disabled={isSubmitting}>
+              <Button type='button' variant='outline' onClick={closeDialog} disabled={isSubmitting}>
                 Cancelar
               </Button>
               <Button type='submit' disabled={isSubmitting || !name.trim()}>
-                {isSubmitting ? 'Guardando...' : 'Crear'}
+                {isSubmitting ? 'Guardando...' : dialogMode === 'edit' ? 'Guardar cambios' : 'Crear'}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar curso</DialogTitle>
+            <DialogDescription>
+              Esta accion no se puede deshacer. Se eliminara el curso <strong>{deleteTarget?.name}</strong> y todas sus
+              asignaciones.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type='button' variant='outline' onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button
+              type='button'
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className='bg-red-600 hover:bg-red-700 text-white'
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -238,6 +323,20 @@ function CourseDetailDialog({
       showApiError(err);
     } finally {
       setIsAddingStudent(false);
+    }
+  };
+
+  const handleDeleteCourseSubject = async (cs: CourseSubject) => {
+    try {
+      await courseSubjectsApi.delete(cs.id);
+      toastSuccess('Asignacion eliminada');
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: referenceKeys.courses }),
+        queryClient.invalidateQueries({ queryKey: referenceKeys.courseSubjects }),
+      ]);
+    } catch (err) {
+      showApiError(err);
     }
   };
 
@@ -298,12 +397,26 @@ function CourseDetailDialog({
                 {course.course_subjects && course.course_subjects.length > 0 ? (
                   <ul className='space-y-2'>
                     {course.course_subjects.map((cs) => (
-                      <li key={cs.id} className='bg-white border border-[#E4E8EF] rounded-lg px-3 py-2'>
-                        <p className='body-2-regular text-[#10182B]'>{cs.subject.name}</p>
-                        <p className='text-xs text-muted-foreground'>
-                          Ciclo {cs.school_year}
-                          {cs.teacher ? ` — ${cs.teacher.first_name} ${cs.teacher.last_name}` : ' — sin docente'}
-                        </p>
+                      <li
+                        key={cs.id}
+                        className='bg-white border border-[#E4E8EF] rounded-lg px-3 py-2 flex items-center justify-between gap-2'
+                      >
+                        <div className='min-w-0'>
+                          <p className='body-2-regular text-[#10182B]'>{cs.subject.name}</p>
+                          <p className='text-xs text-muted-foreground'>
+                            Ciclo {cs.school_year}
+                            {cs.teacher ? ` — ${cs.teacher.first_name} ${cs.teacher.last_name}` : ' — sin docente'}
+                          </p>
+                        </div>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() => handleDeleteCourseSubject(cs)}
+                          aria-label={`Quitar ${cs.subject.name}`}
+                          className='text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0'
+                        >
+                          <Trash2 className='w-3.5 h-3.5' />
+                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -312,10 +425,7 @@ function CourseDetailDialog({
                 )}
               </section>
 
-              <ScheduleSection
-                courseId={courseId}
-                courseSubjects={course.course_subjects ?? []}
-              />
+              <ScheduleSection courseId={courseId} courseSubjects={course.course_subjects ?? []} />
             </div>
           )}
         </DataState>
@@ -363,11 +473,7 @@ function CourseDetailDialog({
       </Dialog>
 
       {assignOpen && (
-        <AssignSubjectDialog
-          courseId={courseId}
-          onClose={() => setAssignOpen(false)}
-          onCreated={handleAssignCreated}
-        />
+        <AssignSubjectDialog courseId={courseId} onClose={() => setAssignOpen(false)} onCreated={handleAssignCreated} />
       )}
     </Dialog>
   );
@@ -475,12 +581,7 @@ function AssignSubjectDialog({
           <div className='grid grid-cols-2 gap-3'>
             <div className='space-y-2'>
               <Label htmlFor='assign-start'>Inicio (opcional)</Label>
-              <Input
-                id='assign-start'
-                type='date'
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
+              <Input id='assign-start' type='date' value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div className='space-y-2'>
               <Label htmlFor='assign-end'>Fin (opcional)</Label>
@@ -582,9 +683,7 @@ function ScheduleSection({
                 <p className='body-2-regular text-[#10182B]'>
                   {DAY_LABEL[slot.day]} {slot.start_time}–{slot.end_time}
                 </p>
-                <p className='text-xs text-muted-foreground'>
-                  {slot.subjects.map((s) => s.subject_name).join(' · ')}
-                </p>
+                <p className='text-xs text-muted-foreground'>{slot.subjects.map((s) => s.subject_name).join(' · ')}</p>
               </li>
             ))}
           </ul>
@@ -642,11 +741,7 @@ function ScheduleSection({
               <div className='space-y-1 max-h-40 overflow-y-auto border rounded-md p-2'>
                 {courseSubjects.map((cs) => (
                   <label key={cs.id} className='flex items-center gap-2 text-sm cursor-pointer'>
-                    <input
-                      type='checkbox'
-                      checked={selectedCsIds.includes(cs.id)}
-                      onChange={() => toggleCs(cs.id)}
-                    />
+                    <input type='checkbox' checked={selectedCsIds.includes(cs.id)} onChange={() => toggleCs(cs.id)} />
                     {cs.subject.name}
                   </label>
                 ))}

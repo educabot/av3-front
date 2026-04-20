@@ -1,6 +1,7 @@
 import { apiClient, fetchPaginated } from './api-client';
 import type {
   Activity,
+  ActivityUpdate,
   Area,
   ChatRequest,
   ChatResponse,
@@ -9,6 +10,8 @@ import type {
   CoordinationDocumentUpdate,
   Course,
   CourseSubject,
+  CourseSubjectUpdate,
+  CourseUpdate,
   Font,
   GenerateActivityRequest,
   GenerateRequest,
@@ -30,6 +33,7 @@ import type {
   SharedClassNumbersResponse,
   Student,
   Subject,
+  SubjectUpdate,
   TimeSlot,
   Topic,
   TourStep,
@@ -42,6 +46,7 @@ import type {
 
 export const authApi = {
   login: (data: LoginRequest) => apiClient.post<LoginResponse>('/auth/login', data),
+  logout: () => apiClient.post<void>('/auth/logout', {}),
 };
 
 // =============================================================================
@@ -69,8 +74,9 @@ export const subjectsApi = {
     const query = params?.area_id ? `/subjects?area_id=${params.area_id}` : '/subjects';
     return fetchPaginated<Subject>(query, params?.limit, params?.offset);
   },
-  create: (data: { name: string; area_id: number; description?: string }) =>
-    apiClient.post<Subject>('/subjects', data),
+  create: (data: { name: string; area_id: number; description?: string }) => apiClient.post<Subject>('/subjects', data),
+  update: (id: number, data: SubjectUpdate) => apiClient.patch<Subject>(`/subjects/${id}`, data),
+  delete: (id: number) => apiClient.delete<void>(`/subjects/${id}`),
 };
 
 // =============================================================================
@@ -94,6 +100,8 @@ export const coursesApi = {
       course_subject_ids: number[];
     },
   ) => apiClient.post<TimeSlot>(`/courses/${courseId}/time-slots`, data),
+  update: (id: number, data: CourseUpdate) => apiClient.patch<Course>(`/courses/${id}`, data),
+  delete: (id: number) => apiClient.delete<void>(`/courses/${id}`),
 };
 
 // =============================================================================
@@ -121,6 +129,8 @@ export const courseSubjectsApi = {
     apiClient.get<SharedClassNumbersResponse>(
       `/course-subjects/${id}/shared-class-numbers?total_classes=${totalClasses}`,
     ),
+  update: (id: number, data: CourseSubjectUpdate) => apiClient.patch<CourseSubject>(`/course-subjects/${id}`, data),
+  delete: (id: number) => apiClient.delete<void>(`/course-subjects/${id}`),
 };
 
 // =============================================================================
@@ -139,6 +149,7 @@ export const topicsApi = {
     apiClient.post<Topic>('/topics', data),
   update: (id: number, data: { name?: string; description?: string; parent_id?: number | null }) =>
     apiClient.patch<Topic>(`/topics/${id}`, data),
+  delete: (id: number) => apiClient.delete<void>(`/topics/${id}`),
 };
 
 // =============================================================================
@@ -152,6 +163,9 @@ export const activitiesApi = {
   },
   create: (data: { moment: MomentKey; name: string; description?: string; duration_minutes?: number }) =>
     apiClient.post<Activity>('/activities', data),
+  getById: (id: number) => apiClient.get<Activity>(`/activities/${id}`),
+  update: (id: number, data: ActivityUpdate) => apiClient.patch<Activity>(`/activities/${id}`, data),
+  delete: (id: number) => apiClient.delete<void>(`/activities/${id}`),
 };
 
 // =============================================================================

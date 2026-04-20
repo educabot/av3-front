@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { onboardingApi } from '@/services/api';
+import { authApi, onboardingApi } from '@/services/api';
 
 /**
  * Convenience hook over useAuthStore.
@@ -41,7 +41,12 @@ export function useAuth() {
     [login, navigate],
   );
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Best-effort: si el back no responde, igual limpiar estado local
+    }
     logoutStore();
     navigate('/login');
   }, [logoutStore, navigate]);
