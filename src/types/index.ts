@@ -214,7 +214,7 @@ export interface CourseSubjectUpdate {
 
 // --- Time Slots ---
 
-export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 export interface TimeSlot {
   id: number;

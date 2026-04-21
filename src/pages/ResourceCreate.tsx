@@ -13,6 +13,7 @@ import type { ResourceType } from '@/types';
 export function ResourceCreate() {
   const navigate = useNavigate();
   const { data: resourceTypes = [] } = useResourceTypesQuery();
+  // TODO: pass area_id when resource context provides it
   const { data: fonts = [] } = useFontsQuery();
   const createResourceMutation = useCreateResourceMutation();
 

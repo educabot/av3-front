@@ -19,6 +19,7 @@ export function TeacherPlanWizard() {
   const classNum = parseInt(classNumber || '0');
 
   const { data: activitiesByMoment = { apertura: [], desarrollo: [], cierre: [] } } = useActivitiesByMomentQuery();
+  // TODO: pass area_id from course-subject context
   const { data: fonts = [] } = useFontsQuery();
   const orgConfig = useConfigStore((s) => s.orgConfig);
 
@@ -215,7 +216,11 @@ export function TeacherPlanWizard() {
               >
                 Anterior
               </button>
-              <Button onClick={handleCreate} disabled={!momentsValid || createMutation.isPending} className='cursor-pointer'>
+              <Button
+                onClick={handleCreate}
+                disabled={!momentsValid || createMutation.isPending}
+                className='cursor-pointer'
+              >
                 {createMutation.isPending ? 'Creando...' : 'Planificar clase'}
               </Button>
             </div>

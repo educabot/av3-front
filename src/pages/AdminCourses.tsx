@@ -25,6 +25,8 @@ const DAY_LABEL: Record<DayOfWeek, string> = {
   wednesday: 'Miercoles',
   thursday: 'Jueves',
   friday: 'Viernes',
+  saturday: 'Sábado',
+  sunday: 'Domingo',
 };
 
 // BE espera day_of_week como number (1=lunes .. 5=viernes) en POST, pero en la
@@ -35,9 +37,11 @@ const DAY_TO_NUMBER: Record<DayOfWeek, number> = {
   wednesday: 3,
   thursday: 4,
   friday: 5,
+  saturday: 6,
+  sunday: 0,
 };
 
-const DAY_OPTIONS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+const DAY_OPTIONS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 export function AdminCourses() {
   const queryClient = useQueryClient();

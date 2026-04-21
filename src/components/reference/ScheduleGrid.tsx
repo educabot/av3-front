@@ -12,7 +12,7 @@ import type { DayOfWeek, TimeSlot, TimeSlotSubject } from '@/types';
  * SharedClassIndicator badge on top of the list of teachers.
  */
 
-const DAY_ORDER: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+const DAY_ORDER: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const DAY_LABELS: Record<DayOfWeek, string> = {
   monday: 'Lunes',
@@ -20,6 +20,8 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
   wednesday: 'Miercoles',
   thursday: 'Jueves',
   friday: 'Viernes',
+  saturday: 'Sáb',
+  sunday: 'Dom',
 };
 
 export interface ScheduleGridCellContext {

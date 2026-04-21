@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { areasApi, coursesApi, subjectsApi, topicsApi, courseSubjectsApi, activitiesApi } from '@/services/api';
-import type { Activity, ActivityUpdate, CourseSubjectUpdate, CourseUpdate, SubjectUpdate } from '@/types';
+import {
+  areasApi,
+  coursesApi,
+  subjectsApi,
+  topicsApi,
+  courseSubjectsApi,
+  activitiesApi,
+  fontsApi,
+} from '@/services/api';
+import type { Activity, ActivityUpdate, CourseSubjectUpdate, CourseUpdate, Font, SubjectUpdate } from '@/types';
 
 export const referenceKeys = {
   areas: ['areas'] as const,
@@ -65,11 +73,11 @@ export function useActivitiesByMomentQuery() {
   });
 }
 
-export function useFontsQuery() {
-  // BE /fonts exige area_id — hasta que exista un listado global, devolvemos vacío.
+export function useFontsQuery(areaId?: number) {
   return useQuery({
-    queryKey: referenceKeys.fonts,
-    queryFn: async () => [] as import('@/types').Font[],
+    queryKey: [...referenceKeys.fonts, areaId],
+    queryFn: async () => (areaId ? (await fontsApi.list({ area_id: areaId })).items : ([] as Font[])),
+    enabled: areaId !== undefined && areaId > 0,
   });
 }
 

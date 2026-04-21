@@ -2,8 +2,8 @@
  * Catalogo de mensajes amigables por codigo de error de la API.
  * Fuente: docs/rfc-alizia/tecnico/errores.md (RFC §2.3).
  *
- * El backend devuelve siempre `{ error: { code, message, details } }`.
- * Siempre chequeamos `error.code`, nunca el HTTP status ni el mensaje crudo —
+ * El backend devuelve siempre `{ code, description, details? }` (flat, sin wrapper).
+ * Siempre chequeamos `code`, nunca el HTTP status ni el mensaje crudo —
  * el `message` del backend esta en espanol pero a veces incluye detalles
  * tecnicos (ej. "Momento 'desarrollo' tiene 4 actividades, maximo permitido: 3").
  *
@@ -23,7 +23,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   FORBIDDEN: 'No tenes permisos para realizar esta accion.',
   NOT_FOUND: 'No encontramos lo que buscas.',
   DUPLICATE: 'Ya existe un registro con esos datos.',
-  CONFLICT: 'Hubo un conflicto al guardar los cambios. Recarga la pagina e intenta nuevamente.',
+  CONFLICT: 'No se puede completar la accion porque hay datos relacionados. Elimina las dependencias primero.',
   INTERNAL_ERROR: 'Error interno del servidor. Intenta nuevamente en unos minutos.',
   NETWORK_ERROR: 'No pudimos conectarnos al servidor. Verifica tu conexion a internet.',
 
@@ -37,6 +37,13 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DUPLICATE_SUBJECT: 'Ya existe una disciplina con ese nombre en el area.',
   DUPLICATE_COURSE: 'Ya existe un curso con ese nombre.',
   DUPLICATE_COURSE_SUBJECT: 'Ya existe esa combinacion de curso y disciplina para el ano lectivo.',
+  AREA_HAS_SUBJECTS: 'No se puede eliminar el area porque tiene asignaturas asociadas. Eliminalas primero.',
+  SUBJECT_HAS_COURSE_SUBJECTS: 'No se puede eliminar la asignatura porque esta asignada a cursos. Desasignala primero.',
+  COURSE_HAS_DEPENDENCIES:
+    'No se puede eliminar el curso porque tiene alumnos o asignaturas asociadas. Eliminalos primero.',
+  COURSE_SUBJECT_HAS_TIMESLOTS:
+    'No se puede eliminar la asignacion porque tiene horarios asociados. Eliminalos primero.',
+  TOPIC_HAS_CHILDREN: 'No se puede eliminar el tema porque tiene subtemas. Eliminalos primero.',
 
   // ---------------------------------------------------------------------------
   // Topics
