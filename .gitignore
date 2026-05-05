@@ -30,11 +30,11 @@ av3-neuquen
 *.sw?
 
 # Claude Code local settings
-.claude/
+.claude/*
+!.claude/skills/
 
 # Local debug artifacts
 output.json
 
 # Scripts and skill files
 *.sh
-SKILL.md

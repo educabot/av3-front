@@ -1,7 +1,40 @@
 // =============================================================================
 // Alizia Frontend — Types alineados al RFC backend
 // Ref: docs/rfc-alizia/tecnico/frontend-integration.md
+//
+// Tipos de dominios migrados a zod viven en src/schemas/ y se re-exportan acá
+// para preservar la API existente (`import { User } from '@/types'`).
 // =============================================================================
+
+import type { SectionConfig } from '@/schemas/organization';
+import type { SubjectCompact } from '@/schemas/subject';
+
+export type {
+  JWTClaims,
+  LoginRequest,
+  LoginResponse,
+  User,
+  UserRole,
+} from '@/schemas/auth';
+export type {
+  Area,
+  AreaCoordinator,
+  UserCompact,
+} from '@/schemas/area';
+export type {
+  OnboardingConfig,
+  Organization,
+  OrgConfig,
+  ProfileField,
+  SectionConfig,
+  SectionType,
+  TourStep,
+} from '@/schemas/organization';
+export type {
+  Subject,
+  SubjectCompact,
+  SubjectUpdate,
+} from '@/schemas/subject';
 
 // --- Paginacion ---
 
@@ -19,94 +52,6 @@ export interface APIErrorBody {
   details?: Record<string, unknown>;
 }
 
-// --- Auth ---
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  token: string;
-  user: User;
-}
-
-export type UserRole = 'teacher' | 'coordinator' | 'admin';
-
-export interface User {
-  // El back usa strings para IDs de usuario (convención team-ai-toolkit).
-  // Coercioná en el punto de uso si necesitás comparar con IDs numéricos.
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  roles: UserRole[];
-}
-
-export interface JWTClaims {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  roles: UserRole[];
-  aud?: string[];
-  exp?: number;
-  iss?: string;
-}
-
-// --- Organization & Config (Cosmos) ---
-
-export interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  config: OrgConfig;
-}
-
-export interface OrgConfig {
-  topic_max_levels: number;
-  topic_level_names: string[];
-  topic_selection_level: number;
-  shared_classes_enabled: boolean;
-  desarrollo_max_activities: number;
-  coord_doc_sections: SectionConfig[];
-  features: Record<string, boolean>;
-  visual_identity?: {
-    platform_name: string;
-    logo_url: string | null;
-    primary_color: string;
-  };
-  ai_settings?: {
-    tone: string;
-    max_generation_length: number;
-    max_chat_interactions: number;
-  };
-  onboarding?: OnboardingConfig;
-}
-
-export interface OnboardingConfig {
-  skip_allowed: boolean;
-  profile_fields: ProfileField[];
-  tour_steps: TourStep[];
-}
-
-export interface ProfileField {
-  key: string;
-  label: string;
-  type: 'text' | 'number' | 'select' | 'multiselect';
-  options?: string[];
-  required: boolean;
-}
-
-export interface TourStep {
-  key: string;
-  title: string;
-  description: string;
-  order: number;
-  roles?: UserRole[];
-  requires_feature?: string;
-}
-
 // --- Topics (reemplaza ProblematicNucleus, KnowledgeArea, Category) ---
 
 export interface Topic {
@@ -116,45 +61,6 @@ export interface Topic {
   level: number;
   parent_id: number | null;
   children?: Topic[];
-}
-
-// --- Areas ---
-
-export interface UserCompact {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  avatar_url: string | null;
-}
-
-export interface AreaCoordinator {
-  id: number;
-  area_id: number;
-  user: UserCompact | null;
-}
-
-export interface Area {
-  id: number;
-  name: string;
-  description?: string;
-  subjects?: Subject[];
-  coordinators?: AreaCoordinator[];
-}
-
-// --- Subjects ---
-
-export interface Subject {
-  id: number;
-  area_id: number;
-  name: string;
-  description?: string;
-}
-
-export interface SubjectUpdate {
-  name?: string;
-  area_id?: number;
-  description?: string;
 }
 
 // --- Courses ---
@@ -181,11 +87,6 @@ export interface Student {
 }
 
 // --- Course Subjects ---
-
-export interface SubjectCompact {
-  id: number;
-  name: string;
-}
 
 export interface TeacherCompact {
   id: number;
@@ -257,17 +158,6 @@ export interface ActivityUpdate {
 }
 
 // --- Dynamic Sections (Coord Doc) ---
-
-export type SectionType = 'text' | 'select_text' | 'markdown';
-
-export interface SectionConfig {
-  key: string;
-  label: string;
-  type: SectionType;
-  options?: string[];
-  ai_prompt: string;
-  required: boolean;
-}
 
 export interface SectionValue {
   value?: string;

@@ -1,4 +1,6 @@
+import type { z } from 'zod';
 import { env } from '@/config/env';
+import { paginatedSchema } from '@/schemas/_helpers';
 import type { APIErrorBody, PaginatedResponse } from '@/types';
 
 // =============================================================================
@@ -89,7 +91,11 @@ function unwrapSuccess<T>(body: unknown): T {
   return body as T;
 }
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+async function request<T>(
+  endpoint: string,
+  options?: RequestInit,
+  schema?: z.ZodType<T>,
+): Promise<T> {
   const extraHeaders = options?.headers instanceof Headers
     ? Object.fromEntries(options.headers.entries())
     : Array.isArray(options?.headers)
@@ -134,7 +140,10 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw new APIError(code, message, details, res.status);
   }
 
-  return unwrapSuccess<T>(await res.json());
+  const unwrapped = unwrapSuccess<T>(await res.json());
+  // Schema is opt-in. When present, validate at the boundary so callers
+  // get either a typed payload or a ZodError pinpointing the bad field.
+  return schema ? schema.parse(unwrapped) : unwrapped;
 }
 
 // =============================================================================
@@ -142,34 +151,55 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 // =============================================================================
 
 export const apiClient = {
-  get: <T>(endpoint: string) => request<T>(endpoint),
+  get: <T>(endpoint: string, schema?: z.ZodType<T>) => request<T>(endpoint, undefined, schema),
 
-  post: <T>(endpoint: string, data?: unknown) =>
-    request<T>(endpoint, {
-      method: 'POST',
-      body: data !== undefined ? JSON.stringify(data) : undefined,
-    }),
+  post: <T>(endpoint: string, data?: unknown, schema?: z.ZodType<T>) =>
+    request<T>(
+      endpoint,
+      {
+        method: 'POST',
+        body: data !== undefined ? JSON.stringify(data) : undefined,
+      },
+      schema,
+    ),
 
-  patch: <T>(endpoint: string, data: unknown) =>
-    request<T>(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
+  patch: <T>(endpoint: string, data: unknown, schema?: z.ZodType<T>) =>
+    request<T>(
+      endpoint,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+      schema,
+    ),
 
-  put: <T>(endpoint: string, data: unknown) =>
-    request<T>(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  put: <T>(endpoint: string, data: unknown, schema?: z.ZodType<T>) =>
+    request<T>(
+      endpoint,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      },
+      schema,
+    ),
 
-  delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
+  delete: <T>(endpoint: string, schema?: z.ZodType<T>) => request<T>(endpoint, { method: 'DELETE' }, schema),
 };
 
 // =============================================================================
 // Pagination helper
 // =============================================================================
 
-export async function fetchPaginated<T>(endpoint: string, limit = 20, offset = 0): Promise<PaginatedResponse<T>> {
+export async function fetchPaginated<T>(
+  endpoint: string,
+  limit = 20,
+  offset = 0,
+  itemSchema?: z.ZodType<T>,
+): Promise<PaginatedResponse<T>> {
   const separator = endpoint.includes('?') ? '&' : '?';
-  return apiClient.get<PaginatedResponse<T>>(`${endpoint}${separator}limit=${limit}&offset=${offset}`);
+  const url = `${endpoint}${separator}limit=${limit}&offset=${offset}`;
+  if (itemSchema) {
+    return apiClient.get(url, paginatedSchema(itemSchema)) as Promise<PaginatedResponse<T>>;
+  }
+  return apiClient.get<PaginatedResponse<T>>(url);
 }

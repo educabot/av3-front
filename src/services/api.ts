@@ -1,8 +1,12 @@
+import { z } from 'zod';
+import { areaSchema } from '@/schemas/area';
+import { loginResponseSchema } from '@/schemas/auth';
+import { onboardingConfigSchema, organizationSchema, tourStepSchema } from '@/schemas/organization';
+import { subjectSchema } from '@/schemas/subject';
 import { apiClient, fetchPaginated } from './api-client';
 import type {
   Activity,
   ActivityUpdate,
-  Area,
   ChatRequest,
   ChatResponse,
   CoordinationDocument,
@@ -18,12 +22,9 @@ import type {
   LessonPlan,
   LessonPlanCreate,
   LoginRequest,
-  LoginResponse,
   MomentKey,
   Notification,
-  OnboardingConfig,
   OnboardingStatus,
-  Organization,
   OrgConfig,
   PaginatedResponse,
   PlanningProgress,
@@ -32,11 +33,9 @@ import type {
   ResourceType,
   SharedClassNumbersResponse,
   Student,
-  Subject,
   SubjectUpdate,
   TimeSlot,
   Topic,
-  TourStep,
   User,
 } from '@/types';
 
@@ -45,7 +44,7 @@ import type {
 // =============================================================================
 
 export const authApi = {
-  login: (data: LoginRequest) => apiClient.post<LoginResponse>('/auth/login', data),
+  login: (data: LoginRequest) => apiClient.post('/auth/login', data, loginResponseSchema),
   logout: () => apiClient.post<void>('/auth/logout', {}),
 };
 
@@ -54,10 +53,12 @@ export const authApi = {
 // =============================================================================
 
 export const areasApi = {
-  list: (params?: { limit?: number; offset?: number }) => fetchPaginated<Area>('/areas', params?.limit, params?.offset),
-  getById: (id: number) => apiClient.get<Area>(`/areas/${id}`),
-  create: (data: { name: string; description?: string }) => apiClient.post<Area>('/areas', data),
-  update: (id: number, data: { name?: string; description?: string }) => apiClient.put<Area>(`/areas/${id}`, data),
+  list: (params?: { limit?: number; offset?: number }) =>
+    fetchPaginated('/areas', params?.limit, params?.offset, areaSchema),
+  getById: (id: number) => apiClient.get(`/areas/${id}`, areaSchema),
+  create: (data: { name: string; description?: string }) => apiClient.post('/areas', data, areaSchema),
+  update: (id: number, data: { name?: string; description?: string }) =>
+    apiClient.put(`/areas/${id}`, data, areaSchema),
   delete: (id: number) => apiClient.delete<void>(`/areas/${id}`),
   addCoordinator: (areaId: number, userId: number) =>
     apiClient.post<void>(`/areas/${areaId}/coordinators`, { user_id: userId }),
@@ -72,10 +73,11 @@ export const areasApi = {
 export const subjectsApi = {
   list: (params?: { limit?: number; offset?: number; area_id?: number }) => {
     const query = params?.area_id ? `/subjects?area_id=${params.area_id}` : '/subjects';
-    return fetchPaginated<Subject>(query, params?.limit, params?.offset);
+    return fetchPaginated(query, params?.limit, params?.offset, subjectSchema);
   },
-  create: (data: { name: string; area_id: number; description?: string }) => apiClient.post<Subject>('/subjects', data),
-  update: (id: number, data: SubjectUpdate) => apiClient.patch<Subject>(`/subjects/${id}`, data),
+  create: (data: { name: string; area_id: number; description?: string }) =>
+    apiClient.post('/subjects', data, subjectSchema),
+  update: (id: number, data: SubjectUpdate) => apiClient.patch(`/subjects/${id}`, data, subjectSchema),
   delete: (id: number) => apiClient.delete<void>(`/subjects/${id}`),
 };
 
@@ -263,9 +265,9 @@ export const chatApi = {
 // =============================================================================
 
 export const orgApi = {
-  getMy: () => apiClient.get<Organization>('/organizations/me'),
+  getMy: () => apiClient.get('/organizations/me', organizationSchema),
   updateConfig: (configPatch: Partial<OrgConfig>) =>
-    apiClient.patch<Organization>('/organizations/me/config', { config: configPatch }),
+    apiClient.patch('/organizations/me/config', { config: configPatch }, organizationSchema),
 };
 
 // =============================================================================
@@ -275,10 +277,10 @@ export const orgApi = {
 export const onboardingApi = {
   getStatus: () => apiClient.get<OnboardingStatus>('/users/me/onboarding-status'),
   complete: () => apiClient.post<{ status: string }>('/users/me/onboarding/complete', {}),
-  getConfig: () => apiClient.get<OnboardingConfig>('/onboarding-config'),
+  getConfig: () => apiClient.get('/onboarding-config', onboardingConfigSchema),
   getProfile: () => apiClient.get<Record<string, unknown>>('/users/me/profile'),
   saveProfile: (data: Record<string, unknown>) => apiClient.put<Record<string, unknown>>('/users/me/profile', data),
-  getTourSteps: () => apiClient.get<TourStep[]>('/users/me/onboarding/tour-steps'),
+  getTourSteps: () => apiClient.get('/users/me/onboarding/tour-steps', z.array(tourStepSchema)),
 };
 
 // =============================================================================
