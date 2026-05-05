@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { z } from 'zod';
 import { apiClient, APIError, AuthError, setAuthToken, getAuthToken, setOnUnauthorized } from './api-client';
 
 // Mock fetch globally
@@ -168,6 +169,36 @@ describe('api-client', () => {
 
       const result = await apiClient.delete('/users/1');
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('schema validation', () => {
+    const userSchema = z.object({
+      id: z.string(),
+      email: z.string(),
+    });
+
+    it('returns parsed payload when schema validates', async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ description: { id: '7', email: 'a@b.com' } }));
+
+      const result = await apiClient.get('/users/me', userSchema);
+
+      expect(result).toEqual({ id: '7', email: 'a@b.com' });
+    });
+
+    it('throws ZodError with the offending path when the response is malformed', async () => {
+      // Backend "renombró" email a mail — typing dice OK pero el schema lo atrapa
+      mockFetch.mockResolvedValueOnce(jsonResponse({ description: { id: '7', mail: 'a@b.com' } }));
+
+      await expect(apiClient.get('/users/me', userSchema)).rejects.toThrow(z.ZodError);
+    });
+
+    it('skips validation when no schema is provided (backwards compatible)', async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ description: { id: 'whatever', extra: true } }));
+
+      const result = await apiClient.get<{ id: string }>('/users/me');
+
+      expect(result).toEqual({ id: 'whatever', extra: true });
     });
   });
 });
