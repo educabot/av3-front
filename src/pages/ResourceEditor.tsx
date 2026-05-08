@@ -10,7 +10,7 @@ import {
 } from '@/hooks/queries/useResourceQueries';
 import { resourcesApi } from '@/services/api';
 import { showApiError, toastSuccess } from '@/lib/toast';
-import { DynamicContentRenderer } from '@/components/resources/DynamicContentRenderer';
+import { DynamicContentRenderer, type OutputSchema } from '@/components/resources/DynamicContentRenderer';
 import { ChatPanel } from '@/components/ai/ChatPanel';
 import { GenerateButton } from '@/components/ai/GenerateButton';
 import { LoadingOrb } from '@/components/ai/LoadingOrb';
@@ -89,10 +89,7 @@ export function ResourceEditor() {
   }
 
   const isPublished = currentResource.status === 'active';
-  const schema = (resourceType?.output_schema || {}) as Record<
-    string,
-    { type: 'string' | 'array'; label?: string; items?: Record<string, unknown> }
-  >;
+  const schema = (resourceType?.output_schema || {}) as OutputSchema;
   const hasContent =
     Object.keys(localContent).length > 0 &&
     Object.values(localContent).some((v) => {
