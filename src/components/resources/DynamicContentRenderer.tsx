@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
  * - string fields: { type: 'string', label: 'Titulo' }
  * - array fields:  { type: 'array', label: 'Secciones', items: { heading: {...}, content: {...} } }
  */
-interface SchemaField {
+export interface SchemaField {
   type: 'string' | 'array';
   label?: string;
   items?: Record<string, SchemaField>;
 }
 
-type OutputSchema = Record<string, SchemaField>;
+export type OutputSchema = Record<string, SchemaField>;
 
 interface DynamicContentRendererProps {
   schema: OutputSchema;
