@@ -38,6 +38,14 @@ const AdminSubjects = lazy(() => import('./pages/AdminSubjects').then((m) => ({ 
 const AdminCourses = lazy(() => import('./pages/AdminCourses').then((m) => ({ default: m.AdminCourses })));
 const AdminTopics = lazy(() => import('./pages/AdminTopics').then((m) => ({ default: m.AdminTopics })));
 const AdminActivities = lazy(() => import('./pages/AdminActivities').then((m) => ({ default: m.AdminActivities })));
+const CoordinatorHome = lazy(() =>
+  import('./pages/CoordinatorHome').then((m) => ({ default: m.CoordinatorHome })),
+);
+const CoordinatorDocuments = lazy(() =>
+  import('./pages/CoordinatorDocuments').then((m) => ({ default: m.CoordinatorDocuments })),
+);
+const Document = lazy(() => import('./pages/Document').then((m) => ({ default: m.Document })));
+const Wizard = lazy(() => import('./pages/Wizard').then((m) => ({ default: m.Wizard })));
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 
 async function loadOrgConfig(): Promise<void> {
@@ -140,7 +148,7 @@ function AppRoutes() {
             path='/coordinator/courses/:id/documents/new'
             element={
               <ProtectedRoute roles={['coordinator']}>
-                <ComingSoon title='Nuevo documento de coordinacion' backHref='/' />
+                <Wizard />
               </ProtectedRoute>
             }
           />
@@ -148,7 +156,7 @@ function AppRoutes() {
             path='/coordinator/documents/new'
             element={
               <ProtectedRoute roles={['coordinator']}>
-                <ComingSoon title='Nuevo documento de coordinacion' backHref='/' />
+                <Wizard />
               </ProtectedRoute>
             }
           />
@@ -156,7 +164,7 @@ function AppRoutes() {
             path='/coordinator/documents/:id'
             element={
               <ProtectedRoute roles={['coordinator']}>
-                <ComingSoon title='Documento de coordinacion' backHref='/' />
+                <Document />
               </ProtectedRoute>
             }
           />
@@ -201,12 +209,7 @@ function AppRoutes() {
                         path='/'
                         element={
                           userRole === 'coordinator' ? (
-                            <ComingSoon
-                              title='Coordinacion'
-                              description='El modulo de coordinacion esta en desarrollo. Pronto podras gestionar documentos y planificaciones aca.'
-                              backHref='/'
-                              backLabel='Cerrar sesion para volver a entrar'
-                            />
+                            <CoordinatorHome />
                           ) : userRole === 'teacher' ? (
                             <TeacherHome />
                           ) : userRole === 'admin' ? (
@@ -220,7 +223,7 @@ function AppRoutes() {
                         path='/coordinator/documents'
                         element={
                           userRole === 'coordinator' ? (
-                            <ComingSoon title='Documentos de coordinacion' backHref='/' />
+                            <CoordinatorDocuments />
                           ) : (
                             <Navigate to='/' replace />
                           )
