@@ -1,23 +1,22 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SharedClassIndicator } from './SharedClassIndicator';
-import type { DocumentSubject, DocumentClass } from '@/types';
+import type { DocumentSubject, DocumentClass, CoordDocSubjectTopic } from '@/types';
 
 interface ClassPlanTableProps {
   subjects: DocumentSubject[];
-  onEditClass?: (subjectId: number, classNumber: number, field: 'title' | 'objective', value: string) => void;
+  onEditClass?: (docClassId: number, data: { title?: string; objective?: string }) => void;
   readOnly?: boolean;
 }
 
 interface ClassRowProps {
   cls: DocumentClass;
-  subjectId: number;
-  onEdit?: (field: 'title' | 'objective', value: string) => void;
+  topicLookup: Map<number, string>;
+  onEdit?: (data: { title?: string; objective?: string }) => void;
   readOnly: boolean;
 }
 
-function ClassRow({ cls, onEdit, readOnly }: ClassRowProps) {
+function ClassRow({ cls, topicLookup, onEdit, readOnly }: ClassRowProps) {
   const [editingField, setEditingField] = useState<'title' | 'objective' | null>(null);
   const [draft, setDraft] = useState('');
 
@@ -29,19 +28,22 @@ function ClassRow({ cls, onEdit, readOnly }: ClassRowProps) {
 
   const save = () => {
     if (editingField && onEdit) {
-      onEdit(editingField, draft);
+      onEdit({ [editingField]: draft });
     }
     setEditingField(null);
   };
 
   const cancel = () => setEditingField(null);
 
+  const classTopics = cls.topic_ids
+    .map((tid) => ({ id: tid, name: topicLookup.get(tid) }))
+    .filter((t) => t.name);
+
   return (
     <div className='bg-white/50 rounded-xl p-4 space-y-2'>
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           <span className='text-xs font-semibold text-gray-500'>Clase {cls.class_number}</span>
-          {cls.is_shared && <SharedClassIndicator />}
         </div>
         {!readOnly && (
           <button
@@ -85,9 +87,9 @@ function ClassRow({ cls, onEdit, readOnly }: ClassRowProps) {
       )}
 
       {/* Topics */}
-      {cls.topics.length > 0 && (
+      {classTopics.length > 0 && (
         <div className='flex flex-wrap gap-1 pt-1'>
-          {cls.topics.map((t) => (
+          {classTopics.map((t) => (
             <span key={t.id} className='text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full'>
               {t.name}
             </span>
@@ -142,6 +144,14 @@ function EditField({
   );
 }
 
+function buildTopicLookup(topics: CoordDocSubjectTopic[]): Map<number, string> {
+  const map = new Map<number, string>();
+  for (const t of topics) {
+    if (t.name) map.set(t.topic_id, t.name);
+  }
+  return map;
+}
+
 function SubjectSection({
   subject,
   onEditClass,
@@ -152,6 +162,7 @@ function SubjectSection({
   readOnly: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const topicLookup = buildTopicLookup(subject.topics);
 
   return (
     <div className='space-y-2'>
@@ -176,10 +187,10 @@ function SubjectSection({
               <ClassRow
                 key={cls.id}
                 cls={cls}
-                subjectId={subject.subject_id}
+                topicLookup={topicLookup}
                 onEdit={
                   onEditClass
-                    ? (field, value) => onEditClass(subject.subject_id, cls.class_number, field, value)
+                    ? (data) => onEditClass(cls.id, data)
                     : undefined
                 }
                 readOnly={readOnly}

@@ -37,19 +37,13 @@ import { CoordinatorDocuments } from './CoordinatorDocuments';
 function makeDoc(id: number, overrides: Partial<CoordinationDocument> = {}): CoordinationDocument {
   return {
     id,
-    organization_id: 1,
     name: `Doc ${id}`,
     area_id: 1,
-    area_name: 'Matematicas',
+    area: { id: 1, name: 'Matematicas' },
     start_date: '2026-03-01',
     end_date: '2026-07-01',
     status: 'in_progress',
-    sections: {},
-    topics: [],
-    subjects: [],
-    org_config: { coord_doc_sections: [] },
     created_at: '2026-01-01',
-    updated_at: '2026-01-01',
     ...overrides,
   };
 }
@@ -111,7 +105,6 @@ describe('CoordinatorDocuments page (G-5.1)', () => {
   });
 
   it('shows "Sin resultados" when filters return nothing', async () => {
-    // Initial load: results, then filter change → empty
     listMock.mockResolvedValueOnce(paged([makeDoc(1)]));
     renderPage();
     await waitFor(() => expect(screen.getByText('Doc 1')).toBeInTheDocument());
@@ -164,7 +157,6 @@ describe('CoordinatorDocuments page (G-5.1)', () => {
 
     const retryBtn = await screen.findByRole('button', { name: /reintentar/i });
 
-    // Retry succeeds → list renders
     listMock.mockResolvedValueOnce(paged([makeDoc(42, { name: 'Recovered' })]));
     const user = userEvent.setup();
     await user.click(retryBtn);

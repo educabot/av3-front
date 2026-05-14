@@ -8,14 +8,18 @@ import { Document } from './Document';
 import type { CoordinationDocument } from '@/types';
 
 const getByIdMock = vi.fn();
-const updateMock = vi.fn();
+const updateSectionsMock = vi.fn();
 const generateMock = vi.fn();
+const publishMock = vi.fn();
+const getChatHistoryMock = vi.fn();
 
 vi.mock('@/services/api', () => ({
   coordinationDocumentsApi: {
     getById: (...args: unknown[]) => getByIdMock(...args),
-    update: (...args: unknown[]) => updateMock(...args),
+    updateSections: (...args: unknown[]) => updateSectionsMock(...args),
     generate: (...args: unknown[]) => generateMock(...args),
+    publish: (...args: unknown[]) => publishMock(...args),
+    getChatHistory: (...args: unknown[]) => getChatHistoryMock(...args),
   },
 }));
 
@@ -27,12 +31,22 @@ vi.mock('@/components/ai/LoadingOrb', () => ({
   LoadingOrb: ({ message }: { message?: string }) => <div data-testid='loading-orb'>{message}</div>,
 }));
 
+vi.mock('@/store/configStore', () => ({
+  useConfigStore: (selector: (s: { orgConfig: { coord_doc_sections: unknown[] } }) => unknown) =>
+    selector({
+      orgConfig: {
+        coord_doc_sections: [
+          { key: 'resumen', label: 'Resumen', type: 'text', ai_prompt: '', required: false },
+        ],
+      },
+    }),
+}));
+
 const mockDocument: CoordinationDocument = {
   id: 1,
-  organization_id: 1,
   name: 'Itinerario Matematicas',
   area_id: 100,
-  area_name: 'Matematicas',
+  area: { id: 100, name: 'Matematicas' },
   start_date: '2026-03-01',
   end_date: '2026-07-01',
   status: 'in_progress',
@@ -41,11 +55,7 @@ const mockDocument: CoordinationDocument = {
   },
   topics: [],
   subjects: [],
-  org_config: {
-    coord_doc_sections: [{ key: 'resumen', label: 'Resumen', type: 'text', ai_prompt: '', required: false }],
-  },
   created_at: '2026-01-01',
-  updated_at: '2026-01-01',
 };
 
 let queryClient: ReturnType<typeof createTestQueryClient>;
@@ -67,6 +77,7 @@ describe('Document page', () => {
     vi.clearAllMocks();
     queryClient = createTestQueryClient();
     getByIdMock.mockResolvedValue(mockDocument);
+    getChatHistoryMock.mockResolvedValue({ messages: [], total: 0 });
   });
 
   it('shows loading state while document loads', () => {

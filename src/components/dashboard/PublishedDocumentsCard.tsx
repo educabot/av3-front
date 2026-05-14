@@ -46,7 +46,7 @@ export function PublishedDocumentsCard({
                 <>
                   <div className='flex-1 min-w-0'>
                     <p className='text-sm font-medium text-gray-900 truncate'>{title}</p>
-                    <p className='text-xs text-gray-400 truncate'>{doc.area_name}</p>
+                    <p className='text-xs text-gray-400 truncate'>{doc.area?.name}</p>
                   </div>
                   {isInteractive && <ChevronRight className='w-4 h-4 text-gray-400 shrink-0' />}
                 </>

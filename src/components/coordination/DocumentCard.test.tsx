@@ -5,19 +5,13 @@ import type { CoordinationDocument } from '@/types';
 
 const baseDoc: CoordinationDocument = {
   id: 42,
-  organization_id: 1,
   name: 'Itinerario Matematicas 2026',
   area_id: 10,
-  area_name: 'Matematicas',
+  area: { id: 10, name: 'Matematicas' },
   start_date: '2026-03-01',
   end_date: '2026-07-01',
   status: 'in_progress',
-  sections: {},
-  topics: [],
-  subjects: [],
-  org_config: { coord_doc_sections: [] },
   created_at: '2026-01-01',
-  updated_at: '2026-01-01',
 };
 
 describe('DocumentCard', () => {
@@ -27,8 +21,12 @@ describe('DocumentCard', () => {
   });
 
   it('shows the area name and start year', () => {
-    render(<DocumentCard document={{ ...baseDoc, name: 'Plan Anual', area_name: 'Lengua' }} onClick={() => {}} />);
-    // The subtitle combines area name and start year
+    render(
+      <DocumentCard
+        document={{ ...baseDoc, name: 'Plan Anual', area: { id: 20, name: 'Lengua' } }}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText(/Lengua/)).toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
@@ -51,6 +49,11 @@ describe('DocumentCard', () => {
   it('renders the "Borrador" badge for pending status', () => {
     render(<DocumentCard document={{ ...baseDoc, status: 'pending' }} onClick={() => {}} />);
     expect(screen.getByText('Borrador')).toBeInTheDocument();
+  });
+
+  it('renders the "Archivado" badge for archived status', () => {
+    render(<DocumentCard document={{ ...baseDoc, status: 'archived' }} onClick={() => {}} />);
+    expect(screen.getByText('Archivado')).toBeInTheDocument();
   });
 
   it('calls onClick when clicked', () => {

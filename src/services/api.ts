@@ -8,12 +8,16 @@ import type {
   CoordinationDocument,
   CoordinationDocumentCreate,
   CoordinationDocumentUpdate,
+  CoordDocChatHistory,
+  CoordDocChatRequest,
+  CoordDocChatResponse,
   Course,
   CourseSubject,
   CourseSubjectUpdate,
   CourseUpdate,
   Font,
   GenerateActivityRequest,
+  GenerateDocumentResponse,
   GenerateRequest,
   LessonPlan,
   LessonPlanCreate,
@@ -27,6 +31,8 @@ import type {
   OrgConfig,
   PaginatedResponse,
   PlanningProgress,
+  PublishDocumentRequest,
+  PublishDocumentResponse,
   Resource,
   ResourceCreate,
   ResourceType,
@@ -34,9 +40,12 @@ import type {
   Student,
   Subject,
   SubjectUpdate,
+  SuggestedClassCount,
   TimeSlot,
   Topic,
   TourStep,
+  UpdateClassRequest,
+  UpdateSectionsResponse,
   User,
 } from '@/types';
 
@@ -181,16 +190,37 @@ export const coordinationDocumentsApi = {
     return fetchPaginated<CoordinationDocument>(query, params?.limit, params?.offset);
   },
   getById: (id: number) => apiClient.get<CoordinationDocument>(`/coordination-documents/${id}`),
-  create: (data: CoordinationDocumentCreate) => apiClient.post<CoordinationDocument>('/coordination-documents', data),
-  update: (id: number, data: CoordinationDocumentUpdate) =>
-    apiClient.patch<CoordinationDocument>(`/coordination-documents/${id}`, data),
+  create: (data: CoordinationDocumentCreate) =>
+    apiClient.post<{ id: number }>('/coordination-documents', data),
+  updateSections: (id: number, sections: Record<string, unknown>) =>
+    apiClient.patch<UpdateSectionsResponse>(`/coordination-documents/${id}`, { sections }),
+  archive: (id: number) =>
+    apiClient.patch<CoordinationDocument>(`/coordination-documents/${id}`, { status: 'archived' }),
   delete: (id: number) => apiClient.delete<void>(`/coordination-documents/${id}`),
   generate: (id: number, data?: GenerateRequest) =>
-    apiClient.post<{
-      sections_generated: string[];
-      class_plans_generated: { subject_id: number; subject_name: string; classes_count: number }[];
-    }>(`/coordination-documents/${id}/generate`, data ?? {}),
-  chat: (id: number, data: ChatRequest) => apiClient.post<ChatResponse>(`/coordination-documents/${id}/chat`, data),
+    apiClient.post<GenerateDocumentResponse>(`/coordination-documents/${id}/generate`, data ?? {}),
+  updateClass: (docId: number, classId: number, data: UpdateClassRequest) =>
+    apiClient.patch<CoordinationDocument>(`/coordination-documents/${docId}/classes/${classId}`, data),
+  publish: (id: number, data?: PublishDocumentRequest) =>
+    apiClient.post<PublishDocumentResponse>(`/coordination-documents/${id}/publish`, data ?? {}),
+  chat: (id: number, data: CoordDocChatRequest) =>
+    apiClient.post<CoordDocChatResponse>(`/coordination-documents/${id}/chat`, data),
+  getChatHistory: (id: number, params?: { limit?: number; offset?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.offset) searchParams.set('offset', String(params.offset));
+    const query = searchParams.toString()
+      ? `/coordination-documents/${id}/chat/history?${searchParams}`
+      : `/coordination-documents/${id}/chat/history`;
+    return apiClient.get<CoordDocChatHistory>(query);
+  },
+};
+
+export const suggestedClassCountsApi = {
+  getByArea: (areaId: number, startDate: string, endDate: string) =>
+    apiClient.get<SuggestedClassCount[]>(
+      `/areas/${areaId}/suggested-class-counts?start_date=${startDate}&end_date=${endDate}`,
+    ),
 };
 
 // =============================================================================

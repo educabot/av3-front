@@ -276,32 +276,42 @@ export interface SectionValue {
 
 // --- Coordination Document ---
 
-export type CoordinationDocumentStatus = 'pending' | 'in_progress' | 'published';
+export type CoordinationDocumentStatus = 'pending' | 'in_progress' | 'published' | 'archived';
 
 export interface CoordinationDocument {
   id: number;
-  organization_id: number;
   name: string;
   area_id: number;
-  area_name: string;
+  area?: { id: number; name: string };
   start_date: string;
   end_date: string;
   status: CoordinationDocumentStatus;
-  sections: Record<string, SectionValue>;
-  topics: Topic[];
-  subjects: DocumentSubject[];
-  org_config: { coord_doc_sections: SectionConfig[] };
+  sections?: Record<string, SectionValue>;
+  topics?: CoordDocTopic[];
+  subjects?: DocumentSubject[];
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+}
+
+export interface CoordDocTopic {
+  id: number;
+  topic_id: number;
+  name?: string;
+}
+
+export interface CoordDocSubjectTopic {
+  id: number;
+  topic_id: number;
+  name?: string;
 }
 
 export interface DocumentSubject {
   id: number;
-  coord_doc_subject_id: number;
   subject_id: number;
   subject_name: string;
   class_count: number;
-  topics: Topic[];
+  observations: string;
+  topics: CoordDocSubjectTopic[];
   classes: DocumentClass[];
 }
 
@@ -310,8 +320,7 @@ export interface DocumentClass {
   class_number: number;
   title: string;
   objective: string;
-  topics: Topic[];
-  is_shared: boolean;
+  topic_ids: number[];
 }
 
 export interface CoordinationDocumentCreate {
@@ -320,7 +329,7 @@ export interface CoordinationDocumentCreate {
   start_date: string;
   end_date: string;
   topic_ids: number[];
-  subjects: { subject_id: number; class_count: number; topic_ids: number[] }[];
+  subjects: { subject_id: number; class_count: number; topic_ids: number[]; observations?: string }[];
 }
 
 export interface CoordinationDocumentUpdate {
@@ -453,6 +462,89 @@ export interface ChatRequest {
 export interface ChatResponse {
   content: string;
   document_updated: boolean;
+}
+
+// --- Coordination Document Chat (server-side history) ---
+
+export interface CoordDocChatRequest {
+  message: string;
+}
+
+export interface CoordDocChatAction {
+  tool: string;
+  result: string;
+  success: boolean;
+}
+
+export interface CoordDocChatResponse {
+  message: string;
+  actions: CoordDocChatAction[];
+}
+
+export interface CoordDocChatMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  tool_calls?: unknown;
+  created_at: string;
+}
+
+export interface CoordDocChatHistory {
+  messages: CoordDocChatMessage[];
+  total: number;
+}
+
+// --- Coordination Document Publish ---
+
+export interface PublishDocumentRequest {
+  force?: boolean;
+}
+
+export interface PublishWarning {
+  type: string;
+  details: { id: number; name: string }[];
+}
+
+export interface PublishDocumentResponse {
+  status: string;
+  document?: CoordinationDocument;
+  message?: string;
+  requires_confirmation?: boolean;
+  warnings?: PublishWarning[];
+  empty_sections?: string[];
+}
+
+export interface EmptySectionsError {
+  code: 'empty_required_sections';
+  message: string;
+  empty_sections: string[];
+}
+
+// --- Coordination Document Generation ---
+
+export interface GenerateDocumentResponse {
+  document: CoordinationDocument;
+  warning?: string;
+}
+
+export interface UpdateSectionsResponse {
+  ok: boolean;
+  warning?: string;
+}
+
+// --- Coordination Document Class Update ---
+
+export interface UpdateClassRequest {
+  title?: string;
+  objective?: string;
+  topic_ids?: number[];
+}
+
+// --- Suggested Class Counts ---
+
+export interface SuggestedClassCount {
+  subject_id: number;
+  class_count: number;
 }
 
 // --- Generate ---

@@ -11,6 +11,7 @@ const STATUS_CONFIG: Record<CoordinationDocumentStatus, { label: string; classNa
   pending: { label: 'Borrador', className: 'bg-gray-100 text-gray-600' },
   in_progress: { label: 'En progreso', className: 'bg-amber-100 text-amber-800' },
   published: { label: 'Publicado', className: 'bg-green-100 text-green-800' },
+  archived: { label: 'Archivado', className: 'bg-slate-100 text-slate-600' },
 };
 
 /**
@@ -51,7 +52,7 @@ export function DocumentCard({ document, onClick }: DocumentCardProps) {
               {document.name || `Documento #${document.id}`}
             </h4>
             <p className='text-xs text-gray-500 mt-0.5'>
-              {document.area_name}
+              {document.area?.name}
               {year ? ` · ${year}` : ''}
             </p>
           </div>

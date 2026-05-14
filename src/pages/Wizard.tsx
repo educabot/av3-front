@@ -65,9 +65,9 @@ export function Wizard() {
     };
 
     try {
-      const doc = await createMutation.mutateAsync(data);
+      const result = await createMutation.mutateAsync(data);
       toastSuccess('Documento creado');
-      navigate(`/coordinator/documents/${doc.id}`);
+      navigate(`/coordinator/documents/${result.id}`);
     } catch (error) {
       showApiError(error);
     }

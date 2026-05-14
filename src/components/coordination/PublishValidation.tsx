@@ -7,17 +7,12 @@ export interface PublishValidationIssue {
   message: string;
 }
 
-/**
- * Pure validation logic for whether a coordination document can be published.
- * Checks:
- *   1. All required sections have a value or selected_option
- *   2. Every subject has at least one class
- *   3. Every class has a title and objective
- */
-export function validateDocumentForPublish(document: CoordinationDocument): PublishValidationIssue[] {
+export function validateDocumentForPublish(
+  document: CoordinationDocument,
+  sectionConfigs: SectionConfig[],
+): PublishValidationIssue[] {
   const issues: PublishValidationIssue[] = [];
 
-  const sectionConfigs: SectionConfig[] = document.org_config?.coord_doc_sections ?? [];
   const sections: Record<string, SectionValue> = document.sections ?? {};
 
   const missingLabels = validateSections(sectionConfigs, sections);
@@ -50,22 +45,17 @@ export function validateDocumentForPublish(document: CoordinationDocument): Publ
   return issues;
 }
 
-/** Convenience helper for boolean checks. */
-export function canPublishDocument(document: CoordinationDocument): boolean {
-  return validateDocumentForPublish(document).length === 0;
+export function canPublishDocument(document: CoordinationDocument, sectionConfigs: SectionConfig[]): boolean {
+  return validateDocumentForPublish(document, sectionConfigs).length === 0;
 }
 
 interface PublishValidationProps {
   document: CoordinationDocument;
+  sectionConfigs: SectionConfig[];
 }
 
-/**
- * Visual feedback of publish-readiness.
- * Renders an alert banner listing every blocking issue, or a success hint.
- * RFC Epic 4 — Validacion al publicar.
- */
-export function PublishValidation({ document }: PublishValidationProps) {
-  const issues = validateDocumentForPublish(document);
+export function PublishValidation({ document, sectionConfigs }: PublishValidationProps) {
+  const issues = validateDocumentForPublish(document, sectionConfigs);
 
   if (issues.length === 0) {
     return (

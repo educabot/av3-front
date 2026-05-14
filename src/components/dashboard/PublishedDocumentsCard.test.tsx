@@ -5,19 +5,13 @@ import type { CoordinationDocument } from '@/types';
 
 const makeDoc = (overrides: Partial<CoordinationDocument>): CoordinationDocument => ({
   id: 1,
-  organization_id: 1,
   name: 'Itinerario Matematicas',
   area_id: 10,
-  area_name: 'Matematicas',
+  area: { id: 10, name: 'Matematicas' },
   start_date: '2026-03-01',
   end_date: '2026-07-01',
   status: 'published',
-  sections: {},
-  topics: [],
-  subjects: [],
-  org_config: { coord_doc_sections: [] },
   created_at: '2026-01-01',
-  updated_at: '2026-01-01',
   ...overrides,
 });
 
@@ -34,8 +28,8 @@ describe('PublishedDocumentsCard', () => {
 
   it('lists each published document with name and area', () => {
     const docs = [
-      makeDoc({ id: 1, name: 'Itinerario Lengua', area_name: 'Lengua' }),
-      makeDoc({ id: 2, name: 'Itinerario Matematicas', area_name: 'Matematicas' }),
+      makeDoc({ id: 1, name: 'Itinerario Lengua', area: { id: 20, name: 'Lengua' } }),
+      makeDoc({ id: 2, name: 'Itinerario Matematicas', area: { id: 10, name: 'Matematicas' } }),
     ];
     render(<PublishedDocumentsCard documents={docs} />);
     expect(screen.getByText('Itinerario Lengua')).toBeInTheDocument();

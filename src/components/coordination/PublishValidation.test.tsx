@@ -11,10 +11,9 @@ const sectionConfigs: SectionConfig[] = [
 function makeDoc(overrides: Partial<CoordinationDocument> = {}): CoordinationDocument {
   return {
     id: 1,
-    organization_id: 1,
     name: 'Doc',
     area_id: 10,
-    area_name: 'Matematicas',
+    area: { id: 10, name: 'Matematicas' },
     start_date: '2026-03-01',
     end_date: '2026-07-01',
     status: 'in_progress',
@@ -23,10 +22,10 @@ function makeDoc(overrides: Partial<CoordinationDocument> = {}): CoordinationDoc
     subjects: [
       {
         id: 1,
-        coord_doc_subject_id: 1,
         subject_id: 1,
         subject_name: 'Algebra',
         class_count: 1,
+        observations: '',
         topics: [],
         classes: [
           {
@@ -34,27 +33,24 @@ function makeDoc(overrides: Partial<CoordinationDocument> = {}): CoordinationDoc
             class_number: 1,
             title: 'Intro',
             objective: 'Conocer ecuaciones',
-            topics: [],
-            is_shared: false,
+            topic_ids: [],
           },
         ],
       },
     ],
-    org_config: { coord_doc_sections: sectionConfigs },
     created_at: '2026-01-01',
-    updated_at: '2026-01-01',
     ...overrides,
   };
 }
 
 describe('validateDocumentForPublish', () => {
   it('returns no issues for a fully valid document', () => {
-    expect(validateDocumentForPublish(makeDoc())).toEqual([]);
+    expect(validateDocumentForPublish(makeDoc(), sectionConfigs)).toEqual([]);
   });
 
   it('reports missing required sections', () => {
     const doc = makeDoc({ sections: {} });
-    const issues = validateDocumentForPublish(doc);
+    const issues = validateDocumentForPublish(doc, sectionConfigs);
     expect(issues).toHaveLength(1);
     expect(issues[0].kind).toBe('missing_section');
     expect(issues[0].message).toContain('Resumen');
@@ -62,7 +58,7 @@ describe('validateDocumentForPublish', () => {
 
   it('does not report optional sections as missing', () => {
     const doc = makeDoc({ sections: { resumen: { value: 'ok' } } });
-    expect(validateDocumentForPublish(doc)).toEqual([]);
+    expect(validateDocumentForPublish(doc, sectionConfigs)).toEqual([]);
   });
 
   it('reports subjects without classes', () => {
@@ -70,16 +66,16 @@ describe('validateDocumentForPublish', () => {
       subjects: [
         {
           id: 1,
-          coord_doc_subject_id: 1,
           subject_id: 1,
           subject_name: 'Algebra',
           class_count: 0,
+          observations: '',
           topics: [],
           classes: [],
         },
       ],
     });
-    const issues = validateDocumentForPublish(doc);
+    const issues = validateDocumentForPublish(doc, sectionConfigs);
     expect(issues.some((i) => i.kind === 'subject_without_classes')).toBe(true);
   });
 
@@ -88,10 +84,10 @@ describe('validateDocumentForPublish', () => {
       subjects: [
         {
           id: 1,
-          coord_doc_subject_id: 1,
           subject_id: 1,
           subject_name: 'Algebra',
           class_count: 1,
+          observations: '',
           topics: [],
           classes: [
             {
@@ -99,36 +95,35 @@ describe('validateDocumentForPublish', () => {
               class_number: 1,
               title: '',
               objective: 'Conocer',
-              topics: [],
-              is_shared: false,
+              topic_ids: [],
             },
           ],
         },
       ],
     });
-    const issues = validateDocumentForPublish(doc);
+    const issues = validateDocumentForPublish(doc, sectionConfigs);
     expect(issues.some((i) => i.kind === 'class_missing_content')).toBe(true);
   });
 
   it('treats sections containing only whitespace as missing', () => {
     const doc = makeDoc({ sections: { resumen: { value: '   ' } } });
-    expect(validateDocumentForPublish(doc)).toHaveLength(1);
+    expect(validateDocumentForPublish(doc, sectionConfigs)).toHaveLength(1);
   });
 });
 
 describe('canPublishDocument', () => {
   it('returns true for a valid document', () => {
-    expect(canPublishDocument(makeDoc())).toBe(true);
+    expect(canPublishDocument(makeDoc(), sectionConfigs)).toBe(true);
   });
 
   it('returns false when any issue is present', () => {
-    expect(canPublishDocument(makeDoc({ sections: {} }))).toBe(false);
+    expect(canPublishDocument(makeDoc({ sections: {} }), sectionConfigs)).toBe(false);
   });
 });
 
 describe('<PublishValidation />', () => {
   it('shows success message when document is valid', () => {
-    render(<PublishValidation document={makeDoc()} />);
+    render(<PublishValidation document={makeDoc()} sectionConfigs={sectionConfigs} />);
     expect(screen.getByRole('status')).toHaveTextContent(/listo para publicar/i);
   });
 
@@ -138,16 +133,16 @@ describe('<PublishValidation />', () => {
       subjects: [
         {
           id: 1,
-          coord_doc_subject_id: 1,
           subject_id: 1,
           subject_name: 'Algebra',
           class_count: 0,
+          observations: '',
           topics: [],
           classes: [],
         },
       ],
     });
-    render(<PublishValidation document={doc} />);
+    render(<PublishValidation document={doc} sectionConfigs={sectionConfigs} />);
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent(/Resumen/);
     expect(alert).toHaveTextContent(/Algebra/);

@@ -38,19 +38,13 @@ const mockCourseSubjects: CourseSubject[] = [
 const mockDocuments: CoordinationDocument[] = [
   {
     id: 50,
-    organization_id: 1,
     name: 'Itinerario Matematicas',
     area_id: 100,
-    area_name: 'Matematicas',
+    area: { id: 100, name: 'Matematicas' },
     start_date: '2026-03-01',
     end_date: '2026-07-01',
     status: 'in_progress',
-    sections: {},
-    topics: [],
-    subjects: [],
-    org_config: { coord_doc_sections: [] },
     created_at: '2026-01-01',
-    updated_at: '2026-01-01',
   },
 ];
 
