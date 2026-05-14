@@ -108,13 +108,19 @@ vi.mock('@/components/coordination', async () => {
   };
 });
 
+vi.mock('@/store/authStore', () => ({
+  useAuthStore: (selector: (s: { user: { id: string } | null }) => unknown) =>
+    selector({ user: { id: '10', name: 'Test', email: 'test@test.com', roles: ['coordinator'] } }),
+}));
+
 import { Wizard } from './Wizard';
 
 // --- Fixtures -----------------------------------------------------------------
 
+const coordUser = { id: 10, email: 'test@test.com', first_name: 'Test', last_name: 'User', avatar_url: null };
 const mockAreas: Area[] = [
-  { id: 1, name: 'Matematicas' },
-  { id: 2, name: 'Lengua' },
+  { id: 1, name: 'Matematicas', coordinators: [{ id: 1, area_id: 1, user: coordUser }] },
+  { id: 2, name: 'Lengua', coordinators: [{ id: 2, area_id: 2, user: coordUser }] },
 ];
 
 const mockSubjects: Subject[] = [

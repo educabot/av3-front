@@ -15,6 +15,7 @@ import {
   buildInitialSubjectConfig,
   type SubjectConfigMap,
 } from '@/components/coordination';
+import { useAuthStore } from '@/store/authStore';
 import type { CoordinationDocumentCreate } from '@/types';
 
 export function Wizard() {
@@ -25,9 +26,16 @@ export function Wizard() {
   // el back vuelve al listado de documentos en vez de a un curso inexistente.
   const backUrl = courseId > 0 ? `/coordinator/courses/${courseId}` : '/coordinator/documents';
 
+  const user = useAuthStore((s) => s.user);
   const { data: subjects = [] } = useSubjectsQuery();
-  const { data: areas = [] } = useAreasQuery();
+  const { data: allAreas = [] } = useAreasQuery();
   const { data: topics = [] } = useTopicsQuery();
+
+  const userId = user ? Number(user.id) : 0;
+  const areas = useMemo(
+    () => allAreas.filter((a) => a.coordinators?.some((c) => c.user?.id === userId)),
+    [allAreas, userId],
+  );
 
   const [step, setStep] = useState(1);
   const [areaId, setAreaId] = useState<number | null>(null);

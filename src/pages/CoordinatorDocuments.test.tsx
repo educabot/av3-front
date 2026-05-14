@@ -32,6 +32,11 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('@/store/authStore', () => ({
+  useAuthStore: (selector: (s: { user: { id: string } | null }) => unknown) =>
+    selector({ user: { id: '10', name: 'Test', email: 'test@test.com', roles: ['coordinator'] } }),
+}));
+
 import { CoordinatorDocuments } from './CoordinatorDocuments';
 
 function makeDoc(id: number, overrides: Partial<CoordinationDocument> = {}): CoordinationDocument {
@@ -49,8 +54,8 @@ function makeDoc(id: number, overrides: Partial<CoordinationDocument> = {}): Coo
 }
 
 const mockAreas: Area[] = [
-  { id: 1, name: 'Matematicas' },
-  { id: 2, name: 'Lengua' },
+  { id: 1, name: 'Matematicas', coordinators: [{ id: 1, area_id: 1, user: { id: 10, email: 'test@test.com', first_name: 'Test', last_name: 'User', avatar_url: null } }] },
+  { id: 2, name: 'Lengua', coordinators: [{ id: 2, area_id: 2, user: { id: 10, email: 'test@test.com', first_name: 'Test', last_name: 'User', avatar_url: null } }] },
 ];
 
 let queryClient: ReturnType<typeof createTestQueryClient>;

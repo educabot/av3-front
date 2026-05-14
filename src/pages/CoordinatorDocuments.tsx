@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Plus } from 'lucide-react';
 import { useAreasQuery } from '@/hooks/queries/useReferenceQueries';
 import { coordinationDocumentsApi } from '@/services/api';
 import { usePaginatedList } from '@/hooks/usePaginatedList';
+import { useAuthStore } from '@/store/authStore';
 import { DataState } from '@/components/DataState';
 import { DocumentCard } from '@/components/coordination/DocumentCard';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,13 @@ type StatusFilter = 'all' | CoordinationDocumentStatus;
  */
 export function CoordinatorDocuments() {
   const navigate = useNavigate();
-  const { data: areas = [] } = useAreasQuery();
+  const user = useAuthStore((s) => s.user);
+  const { data: allAreas = [] } = useAreasQuery();
+  const userId = user ? Number(user.id) : 0;
+  const areas = useMemo(
+    () => allAreas.filter((a) => a.coordinators?.some((c) => c.user?.id === userId)),
+    [allAreas, userId],
+  );
   const docLabel = useNomenclature('coordination_document');
   const docPluralLabel = useNomenclature('coordination_document_plural');
 
