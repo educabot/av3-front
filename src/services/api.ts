@@ -7,7 +7,6 @@ import type {
   ChatResponse,
   CoordinationDocument,
   CoordinationDocumentCreate,
-  CoordinationDocumentUpdate,
   CoordDocChatHistory,
   CoordDocChatRequest,
   CoordDocChatResponse,
