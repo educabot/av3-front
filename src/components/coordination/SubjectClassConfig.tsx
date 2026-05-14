@@ -58,11 +58,11 @@ export function SubjectClassConfig({
 
   const updateClassCount = (subjectId: number, delta: number) => {
     if (readOnly) return;
-    const current = value[subjectId]?.class_count ?? 0;
+    const current = value[subjectId]?.class_count ?? 1;
     onChange({
       ...value,
       [subjectId]: {
-        class_count: Math.max(0, current + delta),
+        class_count: Math.max(1, current + delta),
         topic_ids: value[subjectId]?.topic_ids ?? [],
       },
     });
@@ -99,10 +99,10 @@ export function SubjectClassConfig({
                 <button
                   type='button'
                   onClick={() => updateClassCount(subject.id, -1)}
-                  disabled={count === 0 || readOnly}
+                  disabled={count <= 1 || readOnly}
                   aria-label={`Restar clase a ${subject.name}`}
                   className={`w-8 h-8 flex items-center justify-center transition-colors rounded-lg ${
-                    count > 0 && !readOnly
+                    count > 1 && !readOnly
                       ? 'bg-white/60 border-gray-100 border-2 cursor-pointer hover:bg-white/80'
                       : 'border-2 border-[#E4E8EF] cursor-not-allowed opacity-50'
                   }`}

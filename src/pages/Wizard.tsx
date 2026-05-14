@@ -75,7 +75,8 @@ export function Wizard() {
 
   const progress = (step / 3) * 100;
   const canAdvanceStep1 = areaId !== null && selectedTopicIds.length > 0;
-  const canAdvanceStep2 = Boolean(startDate && endDate);
+  const allSubjectsHaveClasses = areaSubjects.length > 0 && areaSubjects.every((s) => (subjectsConfig[s.id]?.class_count ?? 0) >= 1);
+  const canAdvanceStep2 = Boolean(startDate && endDate) && allSubjectsHaveClasses;
   const canCreate = allSubjectsHaveTopics(areaSubjects, subjectsConfig);
 
   return (

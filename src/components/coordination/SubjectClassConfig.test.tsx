@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import {
@@ -56,12 +57,12 @@ describe('SubjectClassConfig — class_count mode', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ 1: { class_count: 3, topic_ids: [] } }));
   });
 
-  it('decrements class_count but not below 0', () => {
+  it('decrements class_count but not below 1', () => {
     const onChange = vi.fn();
     render(
       <SubjectClassConfig
         subjects={subjects}
-        value={{ 1: { class_count: 1, topic_ids: [] }, 2: { class_count: 0, topic_ids: [] } }}
+        value={{ 1: { class_count: 2, topic_ids: [] }, 2: { class_count: 1, topic_ids: [] } }}
         onChange={onChange}
         availableTopicIds={[]}
         topics={topics}
@@ -69,14 +70,14 @@ describe('SubjectClassConfig — class_count mode', () => {
       />,
     );
     fireEvent.click(screen.getByLabelText('Restar clase a Algebra'));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ 1: { class_count: 0, topic_ids: [] } }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ 1: { class_count: 1, topic_ids: [] } }));
   });
 
-  it('minus button is disabled when count is 0', () => {
+  it('minus button is disabled when count is 1', () => {
     render(
       <SubjectClassConfig
         subjects={subjects}
-        value={{ 1: { class_count: 0, topic_ids: [] }, 2: { class_count: 0, topic_ids: [] } }}
+        value={{ 1: { class_count: 1, topic_ids: [] }, 2: { class_count: 1, topic_ids: [] } }}
         onChange={() => {}}
         availableTopicIds={[]}
         topics={topics}
