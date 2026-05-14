@@ -30,6 +30,17 @@ export function ProfileForm({ fields, values, onChange }: ProfileFormProps) {
             />
           )}
 
+          {field.type === 'number' && (
+            <input
+              type='number'
+              value={String(values[field.key] || '')}
+              onChange={(e) => onChange(field.key, e.target.value)}
+              placeholder={`Ingresa ${field.label.toLowerCase()}...`}
+              min={0}
+              className='w-full px-3 py-2 border border-[#E4E8EF] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white'
+            />
+          )}
+
           {field.type === 'select' && field.options && (
             <select
               value={String(values[field.key] || '')}

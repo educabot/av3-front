@@ -182,12 +182,13 @@ export const activitiesApi = {
 // =============================================================================
 
 export const coordinationDocumentsApi = {
-  list: (params?: { limit?: number; offset?: number; area_id?: number; status?: string }) => {
+  list: async (params?: { limit?: number; offset?: number; area_id?: number; status?: string }): Promise<PaginatedResponse<CoordinationDocument>> => {
     const searchParams = new URLSearchParams();
     if (params?.area_id) searchParams.set('area_id', String(params.area_id));
     if (params?.status) searchParams.set('status', params.status);
     const query = searchParams.toString() ? `/coordination-documents?${searchParams}` : '/coordination-documents';
-    return fetchPaginated<CoordinationDocument>(query, params?.limit, params?.offset);
+    const items = await apiClient.get<CoordinationDocument[]>(query);
+    return { items, more: false };
   },
   getById: (id: number) => apiClient.get<CoordinationDocument>(`/coordination-documents/${id}`),
   create: (data: CoordinationDocumentCreate) =>
